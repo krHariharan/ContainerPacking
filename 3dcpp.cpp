@@ -2,12 +2,17 @@
 
 using namespace std;
 
+typedef struct LocType {
+	int x, y, z
+} Location;
+
 typedef struct ItemType {
     int len;
     int wid;
     int hei;
     bool packed;
     int orientation;
+	Location * pos;
 } Item;
 
 typedef struct VolType {
@@ -91,10 +96,15 @@ void threedcpp(vector<Item>& I, Container C) {
     }
 }
 
-bool pack(Item I, vector<Volume>& SVV){
+bool pack(Item& I, vector<Volume>& SVV){
 	for(int i=0; i<SVV.size(); i++){
         int orientation = fitInSubV(Item I, i, SVV);
 		if(orientation){
+			Location * pos = new Location();
+			pos->x = SVV[i].x;
+			pos->y = SVV[i].y;
+			pos->z = SVV[i].z;
+			I.pos = pos;
 			return orientation;
 		}
 	}
@@ -172,9 +182,28 @@ void readcsv(vector<Item>& Is, Container C) {
     }
 }
 
+void outputRep(vector<Item>& Is, Container C){
+	double occVol=0.0, totalVol;
+	for(int i=Items.size()-1; i>=0; i++){
+		if(Is[i].packed){
+			cout<<"Item "<<i+1;
+			cout<<"\tdimensions : "<<Is[i].len<<'x'<<Is[i].wid<<'x'Is[i].hei;
+			cout<<"\norientation : "<<Is[i].orientation;
+			cout<<"\tlocation : "<<Is[i].pos->x<<'x'<<Is[i].pos->y<<'x'Is[i].pos->z;
+			occVol += (double)(Is[i].l*Is[i].b*Is[i].h)
+		}
+		else{
+			cout<<"Item "<<i+1<<'\tNot Packed';
+		}
+	}
+	totalVol = (double)(C.len*C.wid*C.hei);
+	cout<<"\nVolume Optimization : "<<occVol/totalVol;
+}
+
 int main() {
     // receive input data and pass on to 3dcpp fn
     vector<Item> I;
     Container C;
     readcsv(I, C);
+	outputRep(I, C)
 }
