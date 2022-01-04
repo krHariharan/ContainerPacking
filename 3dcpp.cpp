@@ -3,7 +3,7 @@
 using namespace std;
 
 typedef struct LocType {
-	int x, y, z
+	int x, y, z;
 } Location;
 
 typedef struct ItemType {
@@ -23,7 +23,7 @@ public:
 	Container(int x, int y, int z){
 		L=x;
 		B=y;
-		H=h;
+		H=z;
 		v = new int*[L];
 		minh = new int*[L];
 		for(int i=0; i<L; i++){
@@ -45,10 +45,10 @@ public:
 	}
 	Location* fit(int l, int b, int h){
 		int flag = 0, x, y, base;
-		Location * l = new Location;
-		l->x = -1;
-		l->y = -1;
-		l->z = -1;
+		Location * loc = new Location;
+		loc->x = -1;
+		loc->y = -1;
+		loc->z = -1;
 		for(x=0; x+l<=L; x++){
 			for(y=0; y+b<=B; y++){
 				flag = 1;
@@ -66,19 +66,19 @@ public:
 						break;
 				}
 				if(flag==1){
-					l->x = x;
-					l->y = y;
-					l->z = base;
+					loc->x = x;
+					loc->y = y;
+					loc->z = base;
 				}				
 			}
-			if(l->x>=0)
+			if(loc->x>=0)
 				break;
 		}
 		if(flag==0)
-			return null;
+			return NULL;
 		
-		x=l->x;
-		y=l->y;
+		x=loc->x;
+		y=loc->y;
 		for(int m=x; m<x+l; m++)
 			for(int n=y; n<y+b; n++)
 				v[m][n]+=h;
@@ -90,7 +90,7 @@ public:
 				minh[m][n] = v[x][n]-v[m][n];
 			}
 		}		
-		return l;
+		return loc;
 	}
 };
 
@@ -100,17 +100,17 @@ void threedcpp(vector<Item>& Items, int L, int B, int H) {
     for(int i=Items.size()-1; i>=0; i++){
     	Item I = Items[i];
     	vector<Item> Iarr(6);
-   		Iarr[0] = {I.l, I.b, I.h, 1, true, null};
-   		Iarr[1] = {I.l, I.h, I.b, 2, true, null};
-   		Iarr[2] = {I.b, I.l, I.h, 3, true, null};
-   		Iarr[3] = {I.b, I.h, I.l, 4, true, null};
-   		Iarr[4] = {I.h, I.l, I.b, 5, true, null};
-   		Iarr[5] = {I.h, I.b, I.l, 6, true, null};
+   		Iarr[0] = {I.l, I.b, I.h, 1, true, NULL};
+   		Iarr[1] = {I.l, I.h, I.b, 2, true, NULL};
+   		Iarr[2] = {I.b, I.l, I.h, 3, true, NULL};
+   		Iarr[3] = {I.b, I.h, I.l, 4, true, NULL};
+   		Iarr[4] = {I.h, I.l, I.b, 5, true, NULL};
+   		Iarr[5] = {I.h, I.b, I.l, 6, true, NULL};
    		random_shuffle(Iarr.begin(), Iarr.end());
    		for(int j=0; j<6; j++){
        		// if orientation i+1 is allowed for given package then do:
        		Iarr[j].pos = C.Fit(Iarr[j].l, Iarr[j].b, Iarr[j].h)
-       		if(Iarr[j].pos!=null){
+       		if(Iarr[j].pos!=NULL){
        			Items[i] = Iarr[j];
        		}
    		}
@@ -118,7 +118,7 @@ void threedcpp(vector<Item>& Items, int L, int B, int H) {
 }
 
 void readcsv(vector<Item>& Is, int& L, int& B, int& H) {
-    ifstream file("thpack1/1.csv");
+    ifstream file("thpack1_1.csv");
     string line;
 
     getline(file, line);
@@ -137,9 +137,9 @@ void readcsv(vector<Item>& Is, int& L, int& B, int& H) {
         I.packed = false;
         
         for (int i = 0; getline(ss, item, ','); ++i) {
-            if (i == 10) I.len = stoi(item.substr(1, item.size() - 2));
-            else if (i == 11) I.wid = stoi(item.substr(1, item.size() - 2));
-            else if (i == 12) I.hei = stoi(item.substr(1, item.size() - 2));
+            if (i == 10) I.l = stoi(item.substr(1, item.size() - 2));
+            else if (i == 11) I.b = stoi(item.substr(1, item.size() - 2));
+            else if (i == 12) I.h = stoi(item.substr(1, item.size() - 2));
         }
 
         Is.push_back(I);
