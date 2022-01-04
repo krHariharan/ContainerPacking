@@ -33,15 +33,17 @@ public:
 				v[i][j] = 0;
 				minh[i][j] = 0;
 			}
-		}	
+		}
 	}	
 	~Container(){
+		/*
 		for(int i=0; i<L; i++){
 			delete[] v[i];
 			delete[] minh[i];	
 		}
 		delete[] v;
 		delete[] minh;
+		*/
 	}
 	Location* fit(int l, int b, int h){
 		int flag = 0, x, y, base;
@@ -69,12 +71,13 @@ public:
 					loc->x = x;
 					loc->y = y;
 					loc->z = base;
+					break;
 				}				
 			}
 			if(loc->x>=0)
 				break;
 		}
-		if(flag==0)
+		if(flag==0 || loc->x<0)
 			return NULL;
 		
 		x=loc->x;
@@ -96,8 +99,10 @@ public:
 
 
 void threedcpp(vector<Item>& Items, int L, int B, int H) {
+	cout<<"3dcpp called\n";
 	Container C(L, B, H);
-    for(int i=Items.size()-1; i>=0; i++){
+	cout<<"Container created";
+    for(int i=Items.size()-1; i>=0; i--){
     	Item I = Items[i];
     	vector<Item> Iarr(6);
    		Iarr[0] = {I.l, I.b, I.h, 1, true, NULL};
@@ -107,11 +112,13 @@ void threedcpp(vector<Item>& Items, int L, int B, int H) {
    		Iarr[4] = {I.h, I.l, I.b, 5, true, NULL};
    		Iarr[5] = {I.h, I.b, I.l, 6, true, NULL};
    		random_shuffle(Iarr.begin(), Iarr.end());
+		cout<<"Fitting consignment "<<i<<'\n';
    		for(int j=0; j<6; j++){
        		// if orientation i+1 is allowed for given package then do:
        		Iarr[j].pos = C.fit(Iarr[j].l, Iarr[j].b, Iarr[j].h);
        		if(Iarr[j].pos!=NULL){
        			Items[i] = Iarr[j];
+				break;
        		}
    		}
    	}
@@ -125,7 +132,6 @@ void readcsv(vector<Item>& Is, int& L, int& B, int& H) {
     stringstream containerinfo(line);
     char hashtag; // consume the hashtag
     containerinfo >> hashtag >> L >> B >> H;
-
     getline(file, line);
 
     while (getline(file, line)) {
@@ -135,29 +141,29 @@ void readcsv(vector<Item>& Is, int& L, int& B, int& H) {
         Item I;
         I.orientation = 0;
         I.packed = false;
+		I.pos = NULL;
         
         for (int i = 0; getline(ss, item, ','); ++i) {
-            if (i == 10) I.l = stoi(item.substr(1, item.size() - 2));
-            else if (i == 11) I.b = stoi(item.substr(1, item.size() - 2));
-            else if (i == 12) I.h = stoi(item.substr(1, item.size() - 2));
+            if (i == 10) I.l = stoi(item);
+            else if (i == 11) I.b = stoi(item);
+            else if (i == 12) I.h = stoi(item);
         }
-
         Is.push_back(I);
     }
 }
 
 void outputRep(vector<Item>& Is, int L, int B, int H){
 	double occVol=0.0, totalVol;
-	for(int i=Is.size()-1; i>=0; i++){
+	for(int i=Is.size()-1; i>=0; i--){
 		if(Is[i].packed){
-			cout<<"Item "<<i+1;
+			cout<<"\nItem "<<i+1;
 			cout<<"\tdimensions : "<<Is[i].l<<'x'<<Is[i].b<<'x'<<Is[i].h;
 			cout<<"\norientation : "<<Is[i].orientation;
 			cout<<"\tlocation : "<<Is[i].pos->x<<'x'<<Is[i].pos->y<<'x'<<Is[i].pos->z;
 			occVol += (double)(Is[i].l*Is[i].b*Is[i].h);
 		}
 		else{
-			cout<<"Item "<<i+1<<'\tNot Packed';
+			cout<<"\nItem "<<i+1<<"\tNot Packed";
 		}
 	}
 	totalVol = (double)(L*B*H);
@@ -166,9 +172,10 @@ void outputRep(vector<Item>& Is, int L, int B, int H){
 
 int main() {
     // receive input data and pass on to 3dcpp fn
-    vector<Item> I;
+    vector<Item> Is;
     int L, B, H;
-    readcsv(I, L, B, H);
-	threedcpp(I, L, B, H);
-	outputRep(I, L, B, H);
+    readcsv(Is, L, B, H);
+	cout<<"Input read\n";
+	threedcpp(Is, L, B, H);
+	outputRep(Is, L, B, H);
 }
