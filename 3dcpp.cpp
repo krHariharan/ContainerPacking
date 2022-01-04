@@ -53,7 +53,7 @@ public:
 			for(y=0; y+b<=B; y++){
 				flag = 1;
 				base = v[x][y];
-				if(base+h>H || base<=r)
+				if(base+h>H)
 					continue;
 				for(int m=0; m<l; m++){				
 					for(int n=0; n<b; n++){
@@ -109,7 +109,7 @@ void threedcpp(vector<Item>& Items, int L, int B, int H) {
    		random_shuffle(Iarr.begin(), Iarr.end());
    		for(int j=0; j<6; j++){
        		// if orientation i+1 is allowed for given package then do:
-       		Iarr[j].pos = C.Fit(Iarr[j].l, Iarr[j].b, Iarr[j].h)
+       		Iarr[j].pos = C.fit(Iarr[j].l, Iarr[j].b, Iarr[j].h);
        		if(Iarr[j].pos!=NULL){
        			Items[i] = Iarr[j];
        		}
@@ -148,13 +148,13 @@ void readcsv(vector<Item>& Is, int& L, int& B, int& H) {
 
 void outputRep(vector<Item>& Is, int L, int B, int H){
 	double occVol=0.0, totalVol;
-	for(int i=Items.size()-1; i>=0; i++){
+	for(int i=Is.size()-1; i>=0; i++){
 		if(Is[i].packed){
 			cout<<"Item "<<i+1;
-			cout<<"\tdimensions : "<<Is[i].l<<'x'<<Is[i].b<<'x'Is[i].h;
+			cout<<"\tdimensions : "<<Is[i].l<<'x'<<Is[i].b<<'x'<<Is[i].h;
 			cout<<"\norientation : "<<Is[i].orientation;
-			cout<<"\tlocation : "<<Is[i].Location.x<<'x'<<Is[i].Location.y<<'x'Is[i].Location.z;
-			occVol += (double)(Is[i].l*Is[i].b*Is[i].h)
+			cout<<"\tlocation : "<<Is[i].pos->x<<'x'<<Is[i].pos->y<<'x'<<Is[i].pos->z;
+			occVol += (double)(Is[i].l*Is[i].b*Is[i].h);
 		}
 		else{
 			cout<<"Item "<<i+1<<'\tNot Packed';
