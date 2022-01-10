@@ -1,81 +1,72 @@
-#include<bits/stdc++.h>
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
 
 using namespace std;
 
-typedef struct LocType {
-	int x, y, z
-} Location;
+struct Location {
+    int x, y, z;
+};
 
-typedef struct ItemType {
-    int len;
-    int wid;
-    int hei;
+struct Item {
+    int len, wid, hei;
     bool packed;
     int orientation;
-	Location * pos;
-} Item;
+    Location *pos;
+};
 
-typedef struct VolType {
-    int x;
-    int y;
-    int z;
-    int len;
-    int wid;
-    int hei;
-} Volume;
+struct Volume {
+    int x, y, z;
+    int len, wid, hei;
+};
 
-typedef struct ConType {
-    int len;
-    int wid;
-    int hei;
-} Container;
+struct Container {
+    int len, wid, hei;
+};
 
-int L;
-int H;
-int W;
+int L, H, W;
 
 bool ord(const Volume &x, const Volume &y) {
-    if(x.x<y.x || x.x==y.x&&x.y>y.y || x.x==y.x&&x.y==y.y&&x.z<y.z) return true;
-    return false;
+    return (x.x < y.x ||
+            x.x == y.x && x.y > y.y ||
+            x.x == y.x && x.y == y.y && x.z < y.z);
 }
 
-void push(vector<Volume> & SubV, Volume vol){
-    for()
+bool checkValidVolume(Volume &s) {
+    return (s.len > 0 && s.wid > 0 && s.hei > 0);
 }
 
-bool checkValidVolume(Volume& s) {
-    if(s.len>0 && s.wid>0 && s.hei > 0) return true;
-    return false;
+bool checkfit(Item I, Volume vol) {
+    return I.len <= vol.x && I.wid <= vol.y && I.hei <= vol.z;
 }
 
-bool checkfit(Item I, Volume vol){
-    return I.len<=vol.x && I.wid<=vol.y && I.hei<=vol.z;
-}
-
-void remOverlap(vector<Volume> & SubV, Volume vol) {
+void remOverlap(vector<Volume> &SubV, Volume vol) {
     vector<Volume> nonoverlap(8);
     vector<Volume> nonOLSubV;
 
-    for(int i=0; i<SubV.size(); i++) {
+    for (int i = 0; i < SubV.size(); i++) {
         Volume selSub = SubV[i];
         //everything to the left
-        nonoverlap[3] = {selSub.x, vol.y+vol.wid, selSub.z, selSub.len, selSub.y+selSub.wid-(vol.y+vol.wid), selSub.hei};
+        nonoverlap[3] = {selSub.x, vol.y + vol.wid, selSub.z, selSub.len, selSub.y + selSub.wid - (vol.y + vol.wid), selSub.hei};
         //everything to the right
-        nonoverlap[4] = {selSub.x, selSub.y, selSub.z, selSub.len,  vol.y-selSub.y, selSub.hei};
+        nonoverlap[4] = {selSub.x, selSub.y, selSub.z, selSub.len, vol.y - selSub.y, selSub.hei};
         //top
-        nonoverlap[5] = {selSub.x, vol.y, vol.z+vol.hei, selSub.len,  vol.wid, selSub.z+selSub.hei-(vol.z+vol.hei)};
+        nonoverlap[5] = {selSub.x, vol.y, vol.z + vol.hei, selSub.len, vol.wid, selSub.z + selSub.hei - (vol.z + vol.hei)};
 
-        int f = 0;
-        for(Volume s: nonoverlap) {
-            if(checkValidVolume(s)) {
+        bool f = false;
+        for (Volume s : nonoverlap) {
+            if (checkValidVolume(s)) {
                 nonOLSubV.push_back(s);
-                f=1;
+                f = 1;
             }
         }
-        if(!f) {
+
+        if (!f) {
             nonOLSubV.push_back(selSub);
         }
-        
     }
 
     sort(nonOLSubV.begin(), nonOLSubV.end(), ord);
@@ -83,66 +74,21 @@ void remOverlap(vector<Volume> & SubV, Volume vol) {
     SubV = nonOLSubV;
 }
 
-
-
-void threedcpp(vector<Item>& I, Container C) {
-    vector<Volume>  SubVolVec;
-    Items bi = I[i];
-    Volume container = {0, 0, 0, C.len, C.wid, C.hei};
-
-    for(int i=I.size()-1; i>=0; i++){
-	    I[i].orientation = pack(I[i], SubVolVec);
-        I[i].packed = (bool)I[i].orientation;
-    }
-}
-
-bool pack(Item& I, vector<Volume>& SVV){
-	for(int i=0; i<SVV.size(); i++){
-        int orientation = fitInSubV(Item I, i, SVV);
-		if(orientation){
-			Location * pos = new Location();
-			pos->x = SVV[i].x;
-			pos->y = SVV[i].y;
-			pos->z = SVV[i].z;
-			I.pos = pos;
-			return orientation;
-		}
-	}
-	return false;
-}
-
-int fitInSubV(Item I, int subVindex, vector<Volume>& SVV){
-    vector<Item> Iarr(6);
-    Iarr[0] = {I.len, I.wid, I.hei, 1, false};
-    Iarr[1] = {I.len, I.hei, I.wid, 2, false};
-    Iarr[2] = {I.wid, I.len, I.hei, 3, false};
-    Iarr[3] = {I.wid, I.hei, I.len, 4, false};
-    Iarr[4] = {I.hei, I.len, I.wid, 5, false};
-    Iarr[5] = {I.hei, I.wid, I.len, 6, false};
-    random_shuffle(Iarr.begin(), Iarr.end());
-    for(int i=0; i<6; i++){
-        // if orientation i+1 is allowed for given package then do:
-        if(putInSubV(Iarr[i], subVindex, SVV))
-            return Iarr[i].orientation;
-    }
-    return 0;
-}
-
-bool putInSubV(Item I, int subVindex, vector<Volume>& SVV){
+bool putInSubV(Item I, int subVindex, vector<Volume> &SVV) {
     Volume subv = SVV[subVindex];
 
-    if(checkfit(I, subv)){
+    if (checkfit(I, subv)) {
         //new subvolumes created
-        Volume subv1 = {subv.x, subv.y, subv.z+bi.hei, bi.len, bi.wid, subv.hei-bi.hei};
-        Volume subv2 = {subv.x, subv.y+bi.wid, subv.z, bi.len, subv.wid-bi.wid, bi.hei};
-        Volume subv3 = {subv.x+bi.hei, subv.y, subv.z, subv.len-bi.len, bi.wid, subv.hei-bi.hei};
+        Volume subv1 = {subv.x, subv.y, subv.z + I.hei, I.len, I.wid, subv.hei - I.hei};
+        Volume subv2 = {subv.x, subv.y + I.wid, subv.z, I.len, subv.wid - I.wid, I.hei};
+        Volume subv3 = {subv.x + I.hei, subv.y, subv.z, subv.len - I.len, I.wid, subv.hei - I.hei};
 
-        SVV.erase(subVindex);
+        SVV.erase(SVV.begin() + subVindex);
         //insert them into SubV
         SVV.push_back(subv1);
         SVV.push_back(subv2);
         SVV.push_back(subv3);
-        
+
         sort(SVV.begin(), SVV.end(), ord);
 
         remOverlap(SVV, subv);
@@ -153,7 +99,53 @@ bool putInSubV(Item I, int subVindex, vector<Volume>& SVV){
     return false;
 }
 
-void readcsv(vector<Item>& Is, Container C) {
+int fitInSubV(Item I, int subVindex, vector<Volume> &SVV) {
+    vector<Item> Iarr(6);
+    Iarr[0] = {I.len, I.wid, I.hei, false, 1};
+    Iarr[1] = {I.len, I.hei, I.wid, false, 2};
+    Iarr[2] = {I.wid, I.len, I.hei, false, 3};
+    Iarr[3] = {I.wid, I.hei, I.len, false, 4};
+    Iarr[4] = {I.hei, I.len, I.wid, false, 5};
+    Iarr[5] = {I.hei, I.wid, I.len, false, 6};
+    random_shuffle(Iarr.begin(), Iarr.end());
+
+    for (int i = 0; i < 6; i++) {
+        // if orientation i+1 is allowed for given package then do:
+        if (putInSubV(Iarr[i], subVindex, SVV)) {
+            return Iarr[i].orientation;
+        }
+    }
+
+    return 0;
+}
+
+bool pack(Item &I, vector<Volume> &SVV) {
+    for (int i = 0; i < SVV.size(); i++) {
+        int orientation = fitInSubV(I, i, SVV);
+        if (orientation) {
+            Location *pos = new Location();
+            pos->x = SVV[i].x;
+            pos->y = SVV[i].y;
+            pos->z = SVV[i].z;
+            I.pos = pos;
+            return orientation;
+        }
+    }
+
+    return false;
+}
+
+void threedcpp(vector<Item> &I, Container C) {
+    vector<Volume> SubVolVec;
+    Volume container = {0, 0, 0, C.len, C.wid, C.hei};
+
+    for (int i = I.size() - 1; i >= 0; i++) {
+        I[i].orientation = pack(I[i], SubVolVec);
+        I[i].packed = (bool)I[i].orientation;
+    }
+}
+
+void readcsv(vector<Item> &Is, Container C) {
     ifstream file("thpack1/1.csv");
     string line;
 
@@ -171,33 +163,34 @@ void readcsv(vector<Item>& Is, Container C) {
         Item I;
         I.orientation = 0;
         I.packed = false;
-        
+
         for (int i = 0; getline(ss, item, ','); ++i) {
             if (i == 10) I.len = stoi(item.substr(1, item.size() - 2));
-            else if (i == 11) I.wid = stoi(item.substr(1, item.size() - 2));
-            else if (i == 12) I.hei = stoi(item.substr(1, item.size() - 2));
+            else if (i == 11)
+                I.wid = stoi(item.substr(1, item.size() - 2));
+            else if (i == 12)
+                I.hei = stoi(item.substr(1, item.size() - 2));
         }
 
         Is.push_back(I);
     }
 }
 
-void outputRep(vector<Item>& Is, Container C){
-	double occVol=0.0, totalVol;
-	for(int i=Items.size()-1; i>=0; i++){
-		if(Is[i].packed){
-			cout<<"Item "<<i+1;
-			cout<<"\tdimensions : "<<Is[i].len<<'x'<<Is[i].wid<<'x'Is[i].hei;
-			cout<<"\norientation : "<<Is[i].orientation;
-			cout<<"\tlocation : "<<Is[i].pos->x<<'x'<<Is[i].pos->y<<'x'Is[i].pos->z;
-			occVol += (double)(Is[i].l*Is[i].b*Is[i].h)
-		}
-		else{
-			cout<<"Item "<<i+1<<'\tNot Packed';
-		}
-	}
-	totalVol = (double)(C.len*C.wid*C.hei);
-	cout<<"\nVolume Optimization : "<<occVol/totalVol;
+void outputRep(vector<Item> &Is, Container C) {
+    double occVol = 0.0, totalVol;
+    for (int i = Is.size() - 1; i >= 0; i--) {
+        if (Is[i].packed) {
+            cout << "\nItem " << i + 1;
+            cout << "\tdimensions : " << Is[i].len << 'x' << Is[i].wid << 'x' << Is[i].hei;
+            cout << "\norientation : " << Is[i].orientation;
+            cout << "\tlocation : " << Is[i].pos->x << 'x' << Is[i].pos->y << 'x' << Is[i].pos->z;
+            occVol += (double)(Is[i].len * Is[i].wid * Is[i].hei);
+        } else {
+            cout << "\nItem " << i + 1 << "\tNot Packed";
+        }
+    }
+    totalVol = (double)(C.len * C.wid * C.hei);
+    cout << "\nVolume Optimization : " << occVol / totalVol << endl;
 }
 
 int main() {
@@ -205,5 +198,5 @@ int main() {
     vector<Item> I;
     Container C;
     readcsv(I, C);
-	outputRep(I, C)
+    outputRep(I, C);
 }
