@@ -3,7 +3,7 @@
 using namespace std;
 
 typedef struct LocType {
-	int x, y, z
+	int x, y, z;
 } Location;
 
 typedef struct ItemType {
@@ -37,10 +37,6 @@ int W;
 bool ord(const Volume &x, const Volume &y) {
     if(x.x<y.x || x.x==y.x&&x.y>y.y || x.x==y.x&&x.y==y.y&&x.z<y.z) return true;
     return false;
-}
-
-void push(vector<Volume> & SubV, Volume vol){
-    for()
 }
 
 bool checkValidVolume(Volume& s) {
@@ -87,7 +83,8 @@ void remOverlap(vector<Volume> & SubV, Volume vol) {
 
 void threedcpp(vector<Item>& I, Container C) {
     vector<Volume>  SubVolVec;
-    Items bi = I[i];
+    Item bi;
+    //bi = I[i];
     Volume container = {0, 0, 0, C.len, C.wid, C.hei};
 
     for(int i=I.size()-1; i>=0; i++){
@@ -98,7 +95,7 @@ void threedcpp(vector<Item>& I, Container C) {
 
 bool pack(Item& I, vector<Volume>& SVV){
 	for(int i=0; i<SVV.size(); i++){
-        int orientation = fitInSubV(Item I, i, SVV);
+        int orientation = fitInSubV(I, i, SVV);
 		if(orientation){
 			Location * pos = new Location();
 			pos->x = SVV[i].x;
@@ -131,13 +128,15 @@ int fitInSubV(Item I, int subVindex, vector<Volume>& SVV){
 bool putInSubV(Item I, int subVindex, vector<Volume>& SVV){
     Volume subv = SVV[subVindex];
 
+    Item bi;
+
     if(checkfit(I, subv)){
         //new subvolumes created
-        Volume subv1 = {subv.x, subv.y, subv.z+bi.hei, bi.len, bi.wid, subv.hei-bi.hei};
+        Volume subv1 = {subv.x, subv.y, subv.z+ bi.hei, bi.len, bi.wid, subv.hei-bi.hei};
         Volume subv2 = {subv.x, subv.y+bi.wid, subv.z, bi.len, subv.wid-bi.wid, bi.hei};
         Volume subv3 = {subv.x+bi.hei, subv.y, subv.z, subv.len-bi.len, bi.wid, subv.hei-bi.hei};
 
-        SVV.erase(subVindex);
+        //SVV.erase(subVindex);
         //insert them into SubV
         SVV.push_back(subv1);
         SVV.push_back(subv2);
@@ -184,13 +183,13 @@ void readcsv(vector<Item>& Is, Container C) {
 
 void outputRep(vector<Item>& Is, Container C){
 	double occVol=0.0, totalVol;
-	for(int i=Items.size()-1; i>=0; i++){
+	for(int i=Is.size()-1; i>=0; i++){
 		if(Is[i].packed){
 			cout<<"Item "<<i+1;
-			cout<<"\tdimensions : "<<Is[i].len<<'x'<<Is[i].wid<<'x'Is[i].hei;
+			cout<<"\tdimensions : "<<Is[i].len<<'x'<<Is[i].wid<<'x'<<Is[i].hei;
 			cout<<"\norientation : "<<Is[i].orientation;
-			cout<<"\tlocation : "<<Is[i].pos->x<<'x'<<Is[i].pos->y<<'x'Is[i].pos->z;
-			occVol += (double)(Is[i].l*Is[i].b*Is[i].h)
+			cout<<"\tlocation : "<<Is[i].pos->x<<'x'<<Is[i].pos->y<<'x'<<Is[i].pos->z;
+			occVol += (double)(Is[i].len*Is[i].wid*Is[i].hei);
 		}
 		else{
 			cout<<"Item "<<i+1<<'\tNot Packed';
@@ -205,5 +204,5 @@ int main() {
     vector<Item> I;
     Container C;
     readcsv(I, C);
-	outputRep(I, C)
+	outputRep(I, C);
 }
