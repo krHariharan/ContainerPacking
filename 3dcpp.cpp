@@ -19,6 +19,7 @@ class Container{
 	int L, B, H;
 	int **v;
 	int **minh;
+	set<pair<int, int>> positions;
 public:
 	Container(int x, int y, int z){
 		L=x;
@@ -34,6 +35,7 @@ public:
 				minh[i][j] = 0;
 			}
 		}
+		positions.insert({0,0});
 	}	
 	~Container(){
 		/*
@@ -51,31 +53,31 @@ public:
 		loc->x = -1;
 		loc->y = -1;
 		loc->z = -1;
-		for(x=0; x+l<=L; x++){
-			for(y=0; y+b<=B; y++){
-				flag = 1;
-				base = v[x][y];
-				if(base+h>H)
-					continue;
-				for(int m=0; m<l; m++){				
-					for(int n=0; n<b; n++){
-						if(v[x+m][y+n]!=base || minh[x+m][y+n]>=h){
-							flag=0;
-							break;
-						}
-					}
-					if(flag==0)
+		for(auto p: positions){
+			x=p.first;
+			y=p.second;
+			flag = 1;
+			base = v[x][y];
+			if(base+h>H)
+				continue;
+			if(x+l>L || y+b>B)
+				continue;
+			for(int m=0; m<l; m++){				
+				for(int n=0; n<b; n++){
+					if(v[x+m][y+n]!=base || minh[x+m][y+n]>=h){
+						flag=0;
 						break;
+					}
 				}
-				if(flag==1){
-					loc->x = x;
-					loc->y = y;
-					loc->z = base;
+				if(flag==0)
 					break;
-				}				
 			}
-			if(loc->x>=0)
+			if(flag==1){
+				loc->x = x;
+				loc->y = y;
+				loc->z = base;
 				break;
+			}				
 		}
 		if(flag==0 || loc->x<0)
 			return NULL;
@@ -93,6 +95,12 @@ public:
 				minh[m][n] = v[x][n]-v[m][n];
 			}
 		}		
+
+		if(x+l<L)
+			positions.insert({x+l, y});
+		if(y+b<B)
+			positions.insert({x, y+b});
+
 		return loc;
 	}
 };
@@ -125,7 +133,12 @@ void threedcpp(vector<Item>& Items, int L, int B, int H) {
 }
 
 void readcsv(vector<Item>& Is, int& L, int& B, int& H) {
-    ifstream file("thpack1_1.csv");
+	cout << "Please enter the name of the input file:\n"
+                 "Note: Subfolder of the same name must exist in the current directory."
+        	<< endl;
+	string baseFile;
+	cin>>baseFile;
+    ifstream file("baseFile");
     string line;
 
     getline(file, line);
