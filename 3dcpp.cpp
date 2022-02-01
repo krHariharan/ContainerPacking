@@ -160,8 +160,7 @@ void threedcpp(vector<Item>& Items, int L, int B, int H) {
    		Iarr[3] = {I.l, I.b, I.h, dim[1], dim[0], dim[2], true, NULL};
    		Iarr[4] = {I.l, I.b, I.h, dim[2], dim[1], dim[0], true, NULL};
    		Iarr[5] = {I.l, I.b, I.h, dim[2], dim[0], dim[1], true, NULL};
-   		// random_shuffle(Iarr.begin(), Iarr.end());
-		//cout<<"Fitting consignment "<<i<<'\n';
+
    		for(int j=0; j<6; j++){
        		// if orientation i+1 is allowed for given package then do:
        		Iarr[j].pos = C.fit(Iarr[j].l1, Iarr[j].b1, Iarr[j].h1);
