@@ -1,11 +1,26 @@
+/************************
+
+Container Packing with Multi Drop Constraint
+Logistics Lab - IIT Madras
+
+Guide: Prof.Narayanaswamy
+Anuj
+KR Hariharan
+Soham Roy
+Shree Vishnu
+
+************************/
+
 #include<bits/stdc++.h>
 
 using namespace std;
 
+// Location struct
 typedef struct LocType {
 	int x, y, z;
 } Location;
 
+// Item struct
 typedef struct ItemType {
 	int l;
 	int b;
@@ -17,13 +32,15 @@ typedef struct ItemType {
 	Location* pos;   	
 } Item;
 
+// Container struct
 class Container{
-	int L, B, H;
-	int **v;
-	int **minh;
-   	set<pair<int, int>> positions;
-
+	int L, B, H;	// dimensions of container
+	int **v;	// height upto which each coordinate is filled
+	int **minh;	// minimum height a consignment must be to be placed in a given coordinate, to prevent being blocked by consingment in front
+   	set<pair<int, int>> positions;	// (x, y) of the left rear corner of every available cuboidal space, in lexicographical order
+	vector<Item> packedItems;	// details of packed items, in order of packing
 public:
+	// Constructor to create class objects, given properties [dimensions] of container
 	Container(int x, int y, int z){
 		L=x;
 		B=y;
@@ -41,6 +58,8 @@ public:
 		}
 		positions.insert({0,0});
 	}	
+
+	// Destructor - will not be needed once moved to 2D Vectors for v and minh
 	~Container(){
 		/*
 		for(int i=0; i<L; i++){
@@ -51,32 +70,67 @@ public:
 		delete[] minh;
 		*/
 	}
+
+	// given a consignment with it's assigned position, "pack" the consingment and update the colume space of container
+	void pack(Item I){
+		if(I.pos==NULL)
+			return;
+		int x=I.pos->x;
+		int y=I.pos->y;
+
+		// Updating remaining volume space of container after consignment is packed
+		for(int m=x; m<x+I.l1; m++)
+			for(int n=y; n<y+I.b1; n++)
+				v[m][n]+=I.h1;
+		
+		// updating minh - the minimum height another consignment needs to be, to be packed behind current consignment without being blocked when unloading
+		for(int n=y; n<y+I.b1; n++){
+			for(int m=x-1; m>=0; m--){
+				if(v[m][n]>=v[x][n])
+					break;
+				minh[m][n] = v[x][n]-v[m][n];
+			}
+		}
+
+		// packing a consignment breaks up available volume space into smaller sub-cuboids. Coordinates of the same inserted into positions
+        if(x+I.l1<L)
+			positions.insert({x+I.l1, y});
+		if(y+I.b1<B)
+			positions.insert({x, y+I.b1});
+
+		// consignment "packed"
+		packedItems.push_back(I);
+	}
+
+	// Given the dimensions of the consignment, in order of orientation, return the (x,y) coordinates at which the the consignment can be packed
 	Location* fit(int l, int b, int h){
 		int flag = 0, x, y, base;
+
 		Location * loc = new Location;
 		loc->x = -1;
 		loc->y = -1;
 		loc->z = -1;
+
 		for(auto p: positions){
 			x=p.first;
 			y=p.second;
 			flag = 1;
 			base = v[x][y];
-			if(base+h>H)
-				continue;
+			if(base+h>H)	
+				continue;	// height of consignment, if packed at (x,y), exceeds the height of the container
 			if(x+l>L || y+b>B)
 				continue;
 			for(int m=0; m<l; m++){				
 				for(int n=0; n<b; n++){
 					if(v[x+m][y+n]!=base || minh[x+m][y+n]>=h){
-						flag=0;
+						flag=0;	// flag position 0 if either consignemnt doesn't have the min height, or base is uneven at this area
 						break;
 					}
 				}
 				if(flag==0)
-					break;
+					break;	// position doesn't satisfy reqts - skipped
 			}
-			if(flag==1){
+			if(flag==1){	// position chosen
 				loc->x = x;
 				loc->y = y;
 				loc->z = base;
@@ -84,26 +138,7 @@ public:
 			}				
 		}
 		if(loc->x<0)
-			return NULL;
-		
-		x=loc->x;
-		y=loc->y;
-		for(int m=x; m<x+l; m++)
-			for(int n=y; n<y+b; n++)
-				v[m][n]+=h;
-		
-		for(int n=y; n<y+b; n++){
-			for(int m=x-1; m>=0; m++){
-				if(v[m][n]>=v[x][n])
-					break;
-				minh[m][n] = v[x][n]-v[m][n];
-			}
-		}
-
-        if(x+l<L)
-			positions.insert({x+l, y});
-		if(y+b<B)
-			positions.insert({x, y+b});
+			return NULL;	// no suitable location found for consignment in given orientation
 
 		return loc;
 	}
@@ -132,6 +167,7 @@ void threedcpp(vector<Item>& Items, int L, int B, int H) {
        		Iarr[j].pos = C.fit(Iarr[j].l1, Iarr[j].b1, Iarr[j].h1);
        		if(Iarr[j].pos!=NULL){
        			Items[i] = Iarr[j];
+				   C.pack(Items[i]);
 				break;
        		}
    		}
