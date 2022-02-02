@@ -3,6 +3,8 @@
 Container Packing with Multi Drop Constraint
 Logistics Lab - IIT Madras
 
+Started: Dec 2021
+
 Guide: Prof.Narayanaswamy
 Anuj
 KR Hariharan
@@ -59,16 +61,25 @@ public:
 		positions.insert({0,0});
 	}	
 
-	// Destructor - will not be needed once moved to 2D Vectors for v and minh
-	~Container(){
-		/*
+	Container(const Container &a)
+	{
+		L=a.L;
+		B=a.B;
+		H=a.H;
+		cout<<"creating container\n";
+		v = new int*[L];
+		minh = new int*[L];
 		for(int i=0; i<L; i++){
-			delete[] v[i];
-			delete[] minh[i];	
+			v[i] = new int[B];
+			minh[i] = new int[B];
+			for(int j=0; j<B; j++){
+				v[i][j] = a.v[i][j];
+				minh[i][j] = a.minh[i][j];
+			}
 		}
-		delete[] v;
-		delete[] minh;
-		*/
+		cout<<"Done\n";
+		positions = a.positions;
+		packedItems = a.packedItems;
 	}
 
 	// given a consignment with it's assigned position, "pack" the consingment and update the colume space of container
@@ -142,18 +153,34 @@ public:
 
 		return loc;
 	}
+
+	// Returns volume optimization of current packing of container
+	double volOpt(){
+		double occVol=0.0, totalVol;
+		for(auto I: packedItems){
+			occVol += (double)(I.l*I.b*I.h);
+	}
+	totalVol = (double)(L*B*H);
+	return occVol/totalVol;
+	}
+
+	// returns number of items currently packed
+	int itemCount(){
+		return packedItems.size();
+	}
 };
 
 
-void threedcpp(vector<Item>& Items, int L, int B, int H) {
+// Given a partially packed container as input, fn packs remaining consignments using a purely greedy approach and returns the resultant volume optimization
+double greedy(Container C, vector<Item>& Items, int starting) {
 	//cout<<"3dcpp called\n";
-	Container C(L, B, H);
 	//cout<<"Container created";
-    for(int i=Items.size()-1; i>=0; i--){
+    for(int i=starting; i>=0; i--){
     	Item I = Items[i];
 		vector<int> dim{I.l, I.b, I.h};
 		sort(dim.begin(), dim.end());
     	vector<Item> Iarr(6);
+		// all possible orientations - ordered based on heuristic considering protrusion length and stability
    		Iarr[0] = {I.l, I.b, I.h, dim[0], dim[2], dim[1], true, NULL};
    		Iarr[1] = {I.l, I.b, I.h, dim[1], dim[2], dim[0], true, NULL};
    		Iarr[2] = {I.l, I.b, I.h, dim[0], dim[1], dim[2], true, NULL};
@@ -165,12 +192,73 @@ void threedcpp(vector<Item>& Items, int L, int B, int H) {
        		// if orientation i+1 is allowed for given package then do:
        		Iarr[j].pos = C.fit(Iarr[j].l1, Iarr[j].b1, Iarr[j].h1);
        		if(Iarr[j].pos!=NULL){
-       			Items[i] = Iarr[j];
-				   C.pack(Items[i]);
+				C.pack(Iarr[j]);
 				break;
        		}
    		}
    	}
+	return C.volOpt();
+}
+
+// helper fn for threedcpp used in sorting different container packing options
+bool greaterPair(pair<double,Container>& a, pair<double,Container>& b){
+	if(a.first>b.first)
+		return true;
+	else if(b.first>a.first)
+		return false;
+	else
+		return a.second.itemCount() <= b.second.itemCount();	// more larger packages more likely to have been packed in packing with less overall packages
+}
+
+// Given the consignments to be packed (in order of destination) and dimensions of container, returns container object with an optimal packing based on decision tree heurisitics
+Container threedcpp(vector<Item>& Items, int L, int B, int H, int treeWidth=20) {
+	vector<pair<double,Container>> options;	// contains all possible packing options of limited size decision tree in descending order of volOpt
+	Container C(L,B,H);
+	options.push_back({greedy(C, Items, Items.size()-1), C});	// initializing options with empty container and purely greedy packing volume optimization
+	// cout<<"Greedy Optimization: "<<options[0].first<<endl;
+    for(int i=Items.size()-1; i>=0; i--){
+    	Item I = Items[i];
+		vector<int> dim{I.l, I.b, I.h};
+		sort(dim.begin(), dim.end());
+    	vector<Item> Iarr(6);
+		// all possible orientations - unlike the greedy fn, in decision tree fn, order is irrelevant
+   		Iarr[0] = {I.l, I.b, I.h, dim[0], dim[2], dim[1], true, NULL};
+   		Iarr[1] = {I.l, I.b, I.h, dim[1], dim[2], dim[0], true, NULL};
+   		Iarr[2] = {I.l, I.b, I.h, dim[0], dim[1], dim[2], true, NULL};
+   		Iarr[3] = {I.l, I.b, I.h, dim[1], dim[0], dim[2], true, NULL};
+   		Iarr[4] = {I.l, I.b, I.h, dim[2], dim[1], dim[0], true, NULL};
+   		Iarr[5] = {I.l, I.b, I.h, dim[2], dim[0], dim[1], true, NULL};
+
+		// updating decision tree options
+		for(int k=options.size()-1; k>=0; k--){
+			// case skipping Item i considered
+			C = options[k].second;
+			options.push_back({greedy(C, Items, i-1), C});
+
+			// case of packing item I considered
+			for(int j=0; j<6; j++){
+				// check if orientation i+1 is allowed for given consignment
+				Iarr[j].pos = options[k].second.fit(Iarr[j].l1, Iarr[j].b1, Iarr[j].h1);
+				// if orientation i+1 is allowed for given consignment, pack into container and and keep this packing as an option
+				if(Iarr[j].pos!=NULL){
+					C = options[k].second;
+					C.pack(Iarr[j]);
+					options.push_back({greedy(C, Items, i-1), C});
+				}
+			}
+
+			// old packing that did not consider Item i removed
+			options.erase(options.begin()+k);
+		}
+
+		// sort options in descending order of volume optimization
+		sort(options.begin(), options.end(), greaterPair);
+
+		// keeping 'treeWidth' most optimal packings
+		if(options.size()>treeWidth)
+			options.resize(treeWidth, {greedy(Container(L,B,H), Items, Items.size()-1), Container(L,B,H)});
+   	}
+	return options[0].second;
 }
 
 void readcsv(vector<Item>& Is, int& L, int& B, int& H, string fileName) {
@@ -200,25 +288,10 @@ void readcsv(vector<Item>& Is, int& L, int& B, int& H, string fileName) {
     }
 }
 
-double outputRep(vector<Item>& Is, int L, int B, int H){
-	double occVol=0.0, totalVol;
-	for(int i=Is.size()-1; i>=0; i--){
-		if(Is[i].packed){
-			/*
-			cout<<"\nItem "<<i+1;
-			cout<<"\tdimensions : "<<Is[i].l<<'x'<<Is[i].b<<'x'<<Is[i].h;
-			cout<<"\norientation : "<<Is[i].l1<<'x'<<Is[i].b1<<'x'<<Is[i].h1;
-			cout<<"\tlocation : "<<Is[i].pos->x<<'x'<<Is[i].pos->y<<'x'<<Is[i].pos->z;
-			*/
-			occVol += (double)(Is[i].l*Is[i].b*Is[i].h);
-		}/*
-		else{
-			cout<<"\nItem "<<i+1<<"\tNot Packed";
-		}*/
-	}
-	totalVol = (double)(L*B*H);
-	cout<<"\nVolume Optimization : "<<occVol/totalVol;
-	return occVol/totalVol;
+double outputRep(Container& C){
+	double volOpt = C.volOpt();
+	cout<<"\nVolume Optimization : "<<volOpt;
+	return volOpt;
 }
 
 double packer(string fileName) {
@@ -227,17 +300,13 @@ double packer(string fileName) {
     int L, B, H;
     readcsv(Is, L, B, H, fileName);
 	//cout<<"Input read\n";
-	threedcpp(Is, L, B, H);
-	return outputRep(Is, L, B, H);
+	Container C = threedcpp(Is, L, B, H);
+	return outputRep(C);
 }
 
-int main(){
+int main(int argc, char ** argv){
 	double volOpt=0;
-	cout << "Please enter the name of the input .txt file, without the extension:\n"
-                 "Note: Subfolder of the same name must exist in the current directory."
-        	<< endl;
-	string baseFile;
-	cin>>baseFile;
+	string baseFile(argv[1]);
 	baseFile += "_";
 	string fileType = ".csv";
 	for(int i=1; i<100; i++){

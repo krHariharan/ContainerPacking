@@ -142,7 +142,7 @@ int main() {
               << std::endl;
     std::string dataset;
     std::cin >> dataset;
-    std::ifstream data(dataset + ".txt");                    // append file extension
+    std::ifstream data("thpack/" + dataset + ".txt");                    // append file extension
     bool seed_present = (dataset[dataset.size() - 1] < '8'); // seed is present from thpacks 1 to 7
 
     int p_total; // number of test problems
@@ -155,7 +155,7 @@ int main() {
 
         Container con;
         std::vector<int> IDs = read_txt(data, con, consignments, seed_present);
-        write_csv(con, consignments, IDs, dataset + "_" + std::to_string(p) + ".csv");
+        write_csv(con, consignments, IDs, "thpack/thpack/" + dataset + "_" + std::to_string(p) + ".csv");
     }
 
     data.close();
