@@ -37,8 +37,8 @@ typedef struct ItemType {
 // Container struct
 class Container{
 	int L, B, H;	// dimensions of container
-	int **v;	// height upto which each coordinate is filled
-	int **minh;	// minimum height a consignment must be to be placed in a given coordinate, to prevent being blocked by consingment in front
+	vector<vector<int>> v;	// height upto which each coordinate is filled
+	vector<vector<int>> minh;	// minimum height a consignment must be to be placed in a given coordinate, to prevent being blocked by consingment in front
    	set<pair<int, int>> positions;	// (x, y) of the left rear corner of every available cuboidal space, in lexicographical order
 	vector<Item> packedItems;	// details of packed items, in order of packing
 public:
@@ -48,39 +48,12 @@ public:
 		B=y;
 		H=z;
 		
-		v = new int*[L];
-		minh = new int*[L];
-		for(int i=0; i<L; i++){
-			v[i] = new int[B];
-			minh[i] = new int[B];
-			for(int j=0; j<B; j++){
-				v[i][j] = 0;
-				minh[i][j] = 0;
-			}
-		}
+		v.resize(L, vector<int>(B, 0));
+		minh.resize(L, vector<int>(B, 0));
+		
 		positions.insert({0,0});
 	}	
 
-	Container(const Container &a)
-	{
-		L=a.L;
-		B=a.B;
-		H=a.H;
-		cout<<"creating container\n";
-		v = new int*[L];
-		minh = new int*[L];
-		for(int i=0; i<L; i++){
-			v[i] = new int[B];
-			minh[i] = new int[B];
-			for(int j=0; j<B; j++){
-				v[i][j] = a.v[i][j];
-				minh[i][j] = a.minh[i][j];
-			}
-		}
-		cout<<"Done\n";
-		positions = a.positions;
-		packedItems = a.packedItems;
-	}
 
 	// given a consignment with it's assigned position, "pack" the consingment and update the colume space of container
 	void pack(Item I){
@@ -211,7 +184,7 @@ bool greaterPair(pair<double,Container>& a, pair<double,Container>& b){
 }
 
 // Given the consignments to be packed (in order of destination) and dimensions of container, returns container object with an optimal packing based on decision tree heurisitics
-Container threedcpp(vector<Item>& Items, int L, int B, int H, int treeWidth=20) {
+Container threedcpp(vector<Item>& Items, int L, int B, int H, int treeWidth=2) {
 	vector<pair<double,Container>> options;	// contains all possible packing options of limited size decision tree in descending order of volOpt
 	Container C(L,B,H);
 	options.push_back({greedy(C, Items, Items.size()-1), C});	// initializing options with empty container and purely greedy packing volume optimization
