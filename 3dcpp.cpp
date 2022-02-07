@@ -200,7 +200,7 @@ void readcsv(vector<Item>& Is, int& L, int& B, int& H, string fileName) {
     }
 }
 
-double outputRep(vector<Item>& Is, int L, int B, int H){
+double outputRep(vector<Item>& Is, int L, int B, int H, int num){
 	double occVol=0.0, totalVol;
 	for(int i=Is.size()-1; i>=0; i--){
 		if(Is[i].packed){
@@ -217,31 +217,27 @@ double outputRep(vector<Item>& Is, int L, int B, int H){
 		}*/
 	}
 	totalVol = (double)(L*B*H);
-	cout<<"\nVolume Optimization : "<<occVol/totalVol;
+	cout<<'\n'<<num<<": "<<"Volume Optimization : "<<occVol/totalVol;
 	return occVol/totalVol;
 }
 
-double packer(string fileName) {
+double packer(string fileName, int i) {
     // receive input data and pass on to 3dcpp fn
     vector<Item> Is;
     int L, B, H;
     readcsv(Is, L, B, H, fileName);
 	//cout<<"Input read\n";
 	threedcpp(Is, L, B, H);
-	return outputRep(Is, L, B, H);
+	return outputRep(Is, L, B, H, i);
 }
 
-int main(){
+int main(int argc, char **argv){
 	double volOpt=0;
-	cout << "Please enter the name of the input .txt file, without the extension:\n"
-                 "Note: Subfolder of the same name must exist in the current directory."
-        	<< endl;
-	string baseFile;
-	cin>>baseFile;
+	string baseFile(argv[1]);
 	baseFile += "_";
 	string fileType = ".csv";
 	for(int i=1; i<100; i++){
-		volOpt += packer(baseFile+string(to_string(i))+fileType);
+		volOpt += packer(baseFile+string(to_string(i))+fileType, i);
 	}
 	cout<<"\nAverage volume optimization: "<<volOpt/99;
 }
