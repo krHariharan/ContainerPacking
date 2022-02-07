@@ -261,20 +261,20 @@ void readcsv(vector<Item>& Is, int& L, int& B, int& H, string fileName) {
     }
 }
 
-double outputRep(Container& C){
+double outputRep(Container& C, int i){
 	double volOpt = C.volOpt();
-	cout<<"\nVolume Optimization : "<<volOpt;
+	cout<<i<<": Volume Optimization : "<<volOpt<<endl;
 	return volOpt;
 }
 
-double packer(string fileName) {
+double packer(string fileName, int i) {
     // receive input data and pass on to 3dcpp fn
     vector<Item> Is;
     int L, B, H;
     readcsv(Is, L, B, H, fileName);
 	//cout<<"Input read\n";
 	Container C = threedcpp(Is, L, B, H);
-	return outputRep(C);
+	return outputRep(C, i);
 }
 
 int main(int argc, char ** argv){
@@ -283,7 +283,7 @@ int main(int argc, char ** argv){
 	baseFile += "_";
 	string fileType = ".csv";
 	for(int i=1; i<100; i++){
-		volOpt += packer(baseFile+string(to_string(i))+fileType);
+		volOpt += packer(baseFile+string(to_string(i))+fileType, i);
 	}
 	cout<<"\nAverage volume optimization: "<<volOpt/99;
 }
