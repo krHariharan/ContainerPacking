@@ -118,7 +118,7 @@ void readcsv(std::vector<Item> &Is, int &L, int &B, int &H, std::string fileName
     containerinfo >> hashtag >> L >> B >> H;
     getline(file, line);
 
-    std::cout << "\n(file : " << fileName << ")\t   ";
+    std::cout << "(file : " << fileName << ")    ";
 
     while (getline(file, line)) {
         std::stringstream ss(line);
@@ -156,13 +156,16 @@ double outputRep(std::vector<Item> &Is, int L, int B, int H) {
     return occVol / totalVol;
 }
 
-double packer(std::string fileName) { // receive input data and pass on to 3dcpp fn
+// receive input data and pass on to 3dcpp fn
+std::pair<double, double> packer(std::string fileName) {
     std::vector<Item> Is;
     int L, B, H;
 
     readcsv(Is, L, B, H, fileName);
 
     double efficiency = 0.0;
+
+    auto start = std::chrono::steady_clock::now();
     for (int i = 0; i < 10; i++) {
         // TODO: Simulated Annealing of Is
 
@@ -171,22 +174,31 @@ double packer(std::string fileName) { // receive input data and pass on to 3dcpp
 
         if (tEff > efficiency) efficiency = tEff;
     }
+    std::chrono::duration<double> diff = std::chrono::steady_clock::now() - start;
 
-    std::cout << "Volume Optimization : " << efficiency;
-    return efficiency;
+    std::cout << "Time : " << diff.count() << "s    ";
+    std::cout << "Volume Optimization : " << efficiency * 100 << "%\n";
+
+    return {diff.count(), efficiency * 100};
 }
 
 int main() {
+    std::cout << std::fixed << std::setprecision(3);
     std::cout << "Please enter the subfolder in the current directory which contains"
-                 "the .csv files\n\n";
+                 "the .csv files:\n";
     std::string baseFile;
     std::cin >> baseFile;
     baseFile += "/";
 
-    double volOpt = 0;
-    for (int i = 1; i < 100; i++) {
-        volOpt += packer(baseFile + std::string(std::to_string(i)) + ".csv");
+    int totalFiles = 100;
+    double time = 0, volOpt = 0;
+    for (int i = 1; i <= totalFiles; i++) {
+        auto temp = packer(baseFile + std::string(std::to_string(i)) + ".csv");
+        time += temp.first;
+        volOpt += temp.second;
     }
 
-    std::cout << "\n\nAverage volume optimization: " << volOpt / 99 << "\n";
+    std::cout << "\n    Total time taken: " << time << "s    "
+              << "Average volume optimization: " << volOpt / totalFiles << "%    for "
+              << totalFiles << " files\n";
 }
