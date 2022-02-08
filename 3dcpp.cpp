@@ -32,6 +32,12 @@ typedef struct ItemType {
 	Location* pos;   	
 } Item;
 
+// Sorting function to sort by least volume
+bool orderByVolume(const Item &x, const Item &y) {
+    if(x.l*1LL*x.b*1LL*x.h <= y.l*1LL*y.b*1LL*y.h) return true;
+    return false;
+}
+
 // Container struct
 class Container{
 	int L, B, H;	// dimensions of container
@@ -149,17 +155,20 @@ void threedcpp(vector<Item>& Items, int L, int B, int H) {
 	//cout<<"3dcpp called\n";
 	Container C(L, B, H);
 	//cout<<"Container created";
+	for(int i = 0; i < ceil(Items.size()/3); i++) {
+        sort(Items.begin()+i, min(Items.begin()+i+3, Items.end()), orderByVolume);
+    }
     for(int i=Items.size()-1; i>=0; i--){
     	Item I = Items[i];
 		vector<int> dim{I.l, I.b, I.h};
 		sort(dim.begin(), dim.end());
     	vector<Item> Iarr(6);
-   		Iarr[0] = {I.l, I.b, I.h, dim[0], dim[2], dim[1], true, NULL};
-   		Iarr[1] = {I.l, I.b, I.h, dim[1], dim[2], dim[0], true, NULL};
-   		Iarr[2] = {I.l, I.b, I.h, dim[0], dim[1], dim[2], true, NULL};
-   		Iarr[3] = {I.l, I.b, I.h, dim[1], dim[0], dim[2], true, NULL};
-   		Iarr[4] = {I.l, I.b, I.h, dim[2], dim[1], dim[0], true, NULL};
-   		Iarr[5] = {I.l, I.b, I.h, dim[2], dim[0], dim[1], true, NULL};
+   		Iarr[0] = {I.l, I.b, I.h, dim[0], dim[1], dim[2], true, NULL};
+   		Iarr[1] = {I.l, I.b, I.h, dim[0], dim[2], dim[1], true, NULL};
+   		Iarr[2] = {I.l, I.b, I.h, dim[1], dim[0], dim[2], true, NULL};
+   		Iarr[3] = {I.l, I.b, I.h, dim[1], dim[2], dim[0], true, NULL};
+   		Iarr[4] = {I.l, I.b, I.h, dim[2], dim[0], dim[1], true, NULL};
+   		Iarr[5] = {I.l, I.b, I.h, dim[2], dim[1], dim[0], true, NULL};
 
    		for(int j=0; j<6; j++){
        		// if orientation i+1 is allowed for given package then do:
