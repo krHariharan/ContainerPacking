@@ -23,6 +23,15 @@ typedef struct LocType {
 	int x, y, z;
 } Location;
 
+enum orientation
+{
+   Height,
+   Length,
+   Width,
+   All,
+   Other
+};
+
 // Item struct
 typedef struct ItemType {
 	int l;
@@ -32,6 +41,8 @@ typedef struct ItemType {
 	int b1;
     int h1;
     bool packed;
+	bool stackable;
+	orientation o;
 	Location* pos;   	
 } Item;
 
@@ -75,6 +86,13 @@ public:
 					break;
 				minh[m][n] = v[x][n]-v[m][n];
 			}
+		}
+
+		// Updating remaining volume space of container if Item is not stackable
+		if(!I.stackable){
+			for(int m=x; m<x+I.l1; m++)
+				for(int n=y; n<y+I.b1; n++)
+					v[m][n]=H;
 		}
 
 		// packing a consignment breaks up available volume space into smaller sub-cuboids. Coordinates of the same inserted into positions
@@ -142,6 +160,13 @@ public:
 	int itemCount(){
 		return packedItems.size();
 	}
+
+	bool checkValid(){
+		for(auto I: packedItems)
+			if(I.o==Height && I.h!=I.h1)
+				return false;
+		return true;
+	}
 };
 
 
@@ -155,15 +180,17 @@ double greedy(Container C, vector<Item>& Items, int starting) {
 		sort(dim.begin(), dim.end());
     	vector<Item> Iarr(6);
 		// all possible orientations - ordered based on heuristic considering protrusion length and stability
-   		Iarr[0] = {I.l, I.b, I.h, dim[0], dim[2], dim[1], true, NULL};
-   		Iarr[1] = {I.l, I.b, I.h, dim[1], dim[2], dim[0], true, NULL};
-   		Iarr[2] = {I.l, I.b, I.h, dim[0], dim[1], dim[2], true, NULL};
-   		Iarr[3] = {I.l, I.b, I.h, dim[1], dim[0], dim[2], true, NULL};
-   		Iarr[4] = {I.l, I.b, I.h, dim[2], dim[1], dim[0], true, NULL};
-   		Iarr[5] = {I.l, I.b, I.h, dim[2], dim[0], dim[1], true, NULL};
+   		Iarr[0] = {I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, NULL};
+   		Iarr[1] = {I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, NULL};
+   		Iarr[2] = {I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, NULL};
+   		Iarr[3] = {I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, NULL};
+   		Iarr[4] = {I.l, I.b, I.h, dim[2], dim[1], dim[0], true, I.stackable, I.o, NULL};
+   		Iarr[5] = {I.l, I.b, I.h, dim[2], dim[0], dim[1], true, I.stackable, I.o, NULL};
 
    		for(int j=0; j<6; j++){
-       		// if orientation i+1 is allowed for given package then do:
+       		// if orientation i+1 is allowed for given package
+			if((I.o==Height && Iarr[j].h!=Iarr[j].h1) || (I.o==Length && Iarr[j].l!=Iarr[j].l1) || (I.o==Width && Iarr[j].b!=Iarr[j].b1))
+					continue;
        		Iarr[j].pos = C.fit(Iarr[j].l1, Iarr[j].b1, Iarr[j].h1);
        		if(Iarr[j].pos!=NULL){
 				C.pack(Iarr[j]);
@@ -196,12 +223,12 @@ Container threedcpp(vector<Item>& Items, int L, int B, int H, int treeWidth=2) {
 		sort(dim.begin(), dim.end());
     	vector<Item> Iarr(6);
 		// all possible orientations - unlike the greedy fn, in decision tree fn, order is irrelevant
-   		Iarr[0] = {I.l, I.b, I.h, dim[0], dim[2], dim[1], true, NULL};
-   		Iarr[1] = {I.l, I.b, I.h, dim[1], dim[2], dim[0], true, NULL};
-   		Iarr[2] = {I.l, I.b, I.h, dim[0], dim[1], dim[2], true, NULL};
-   		Iarr[3] = {I.l, I.b, I.h, dim[1], dim[0], dim[2], true, NULL};
-   		Iarr[4] = {I.l, I.b, I.h, dim[2], dim[1], dim[0], true, NULL};
-   		Iarr[5] = {I.l, I.b, I.h, dim[2], dim[0], dim[1], true, NULL};
+   		Iarr[0] = {I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, NULL};
+   		Iarr[1] = {I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, NULL};
+   		Iarr[2] = {I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, NULL};
+   		Iarr[3] = {I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, NULL};
+   		Iarr[4] = {I.l, I.b, I.h, dim[2], dim[1], dim[0], true, I.stackable, I.o, NULL};
+   		Iarr[5] = {I.l, I.b, I.h, dim[2], dim[0], dim[1], true, I.stackable, I.o, NULL};
 
 		// updating decision tree options
 		for(int k=options.size()-1; k>=0; k--){
@@ -212,6 +239,8 @@ Container threedcpp(vector<Item>& Items, int L, int B, int H, int treeWidth=2) {
 			// case of packing item I considered
 			for(int j=0; j<6; j++){
 				// check if orientation i+1 is allowed for given consignment
+				if((I.o==Height && Iarr[j].h!=Iarr[j].h1) || (I.o==Length && Iarr[j].l!=Iarr[j].l1) || (I.o==Width && Iarr[j].b!=Iarr[j].b1))
+					continue;
 				Iarr[j].pos = options[k].second.fit(Iarr[j].l1, Iarr[j].b1, Iarr[j].h1);
 				// if orientation i+1 is allowed for given consignment, pack into container and and keep this packing as an option
 				if(Iarr[j].pos!=NULL){
@@ -257,6 +286,28 @@ void readcsv(vector<Item>& Is, int& L, int& B, int& H, string fileName) {
             if (i == 10) I.l = I.l1 = stoi(item.substr(1, item.size()-2));
             else if (i == 11) I.b = I.b1 = stoi(item.substr(1, item.size()-2));
             else if (i == 12) I.h = I.h1 = stoi(item.substr(1, item.size()-2));
+			else if(i==15) {
+				// cout<<item.substr(1, item.size()-2)<<' ';
+				if(stoi(item.substr(1, item.size()-2)) == 1)
+					I.stackable = true;
+				else
+					I.stackable = false;
+				//cout<<I.stackable<<endl;
+			}
+			else if(i==19) {
+				// cout<<item.substr(1, item.size()-2)<<' ';
+				if(item.substr(1, item.size()-2) == "ROTATE_ANY")
+					I.o = All;
+				else if(item.substr(1, item.size()-2) == "ROTATE_HEIGHT_ONLY")
+					I.o = Height;
+				else if(item.substr(1, item.size()-2) == "ROTATE_WIDTH_ONLY")
+					I.o = Width;
+				else if(item.substr(1, item.size()-2) == "ROTATE_LENGTH_ONLY")
+					I.o = Length;
+				else
+					I.o = Other;
+				// cout<<I.o<<endl;
+			}
         }
         Is.push_back(I);
     }
@@ -264,7 +315,7 @@ void readcsv(vector<Item>& Is, int& L, int& B, int& H, string fileName) {
 
 double outputRep(Container& C, int i){
 	double volOpt = C.volOpt();
-	cout<<i<<": Volume Optimization : "<<volOpt<<endl;
+	cout<<i<<": Volume Optimization : "<<volOpt<<' '<<C.checkValid()<<endl;
 	return volOpt;
 }
 

@@ -60,9 +60,12 @@ std::vector<int> read_txt(std::ifstream &data, Container &con, std::map<int, Con
 
         data >> new_consignment.length >> ls >> new_consignment.width >> ws >> new_consignment.height >> hs;
 
+
+        if(((double) rand() / (RAND_MAX)<=0.8))
+            new_consignment.is_stackable = 1;
+
         // convert ls, ws, hs to is_stackable and stack_restriction_type
         if (ls + ws + hs >= 1) {
-            new_consignment.is_stackable = 1;
             new_consignment.stack_restriction_type = "STACK_TYPE_SAME_CARGO_ONLY";
 
             if (ls + ws + hs == 1) {
