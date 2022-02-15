@@ -1,11 +1,22 @@
 #include <bits/stdc++.h>
 
+// log(0.1 / 1) / log(0.9) is approximately 21 sweeps
+const double TEMP_MAX = 1, TEMP_MIN = 0.1, COOLING_RATE = 0.9;
+
+bool DEBUG = false;
+
 std::random_device rd;
 std::seed_seq sd{rd(), rd(), rd(), rd()};
-std::mt19937 rng(sd);
+std::mt19937 rng(rd());
 
 struct Location {
     int x = -1, y = -1, z = -1;
+
+    double operator-(const Location &other) const {
+        return std::sqrt(std::pow(x - other.x, 2) +
+                         std::pow(y - other.y, 2) +
+                         std::pow(z - other.z, 2));
+    }
 };
 
 struct Item {
@@ -158,21 +169,56 @@ double outputRep(std::vector<Item> &Is, int L, int B, int H) {
 
 // receive input data and pass on to 3dcpp fn
 std::pair<double, double> packer(std::string fileName) {
-    std::vector<Item> Is;
     int L, B, H;
+    std::vector<Item> Is;
 
     readcsv(Is, L, B, H, fileName);
 
-    double efficiency = 0.0;
+    threedcpp(Is, L, B, H);
+
+    double efficiency = outputRep(Is, L, B, H);
+
+    std::uniform_int_distribution<> intDist(0, Is.size() - 1);
+    std::uniform_real_distribution<> floatDist(0, 1);
 
     auto start = std::chrono::steady_clock::now();
-    for (int i = 0; i < 10; i++) {
-        // TODO: Simulated Annealing of Is
+    for (double temp = TEMP_MAX; temp > TEMP_MIN; temp *= COOLING_RATE) {
+        // Number of swaps evaluated at each temperature, hardcoded for now
+        int swapsPerTemp = 10;
 
-        threedcpp(Is, L, B, H);
-        double tEff = outputRep(Is, L, B, H);
+        for (int i = 0; i < swapsPerTemp; i++) {
+            int a = intDist(rng), b = intDist(rng);
 
-        if (tEff > efficiency) efficiency = tEff;
+            while (b == a) {
+                b = intDist(rng);
+            }
+
+            std::swap(Is[a], Is[b]);
+
+            threedcpp(Is, L, B, H);
+            double newEff = outputRep(Is, L, B, H);
+
+            // change in energy between new and old state, i.e. cost function
+            // = (change in efficiency in %) + (euclidean distance b/w the items / 100)
+            double delE = (efficiency - newEff) * 100 + (Is[a].pos - Is[b].pos) / 100;
+
+            // probability = exp(-ΔE / T)
+            float probability = exp(-delE / temp);
+            float randVal = floatDist(rng);
+
+            if (DEBUG) {
+                std::cout << "delEfficiency : " << (efficiency - newEff) * 100
+                          << "  dist : " << (Is[a].pos - Is[b].pos) / 100
+                          << "  delE : " << delE
+                          << "  probability : " << probability << std::endl;
+            }
+
+            if (randVal > probability) { // probability too low, revert the change
+                std::swap(Is[a], Is[b]);
+            } else {
+                efficiency = newEff;
+            }
+        }
     }
     std::chrono::duration<double> diff = std::chrono::steady_clock::now() - start;
 
@@ -186,14 +232,17 @@ int main() {
     std::cout << std::fixed << std::setprecision(3);
     std::cout << "Please enter the subfolder in the current directory which contains"
                  "the .csv files:\n";
-    std::string baseFile;
-    std::cin >> baseFile;
-    baseFile += "/";
+    std::string subfolder;
+    std::cin >> subfolder;
+    subfolder += "/";
 
-    int totalFiles = 100;
+    std::cout << "Please enter the number of .csv files in " << subfolder << ":\n";
+    int totalFiles;
+    std::cin >> totalFiles;
+
     double time = 0, volOpt = 0;
     for (int i = 1; i <= totalFiles; i++) {
-        auto temp = packer(baseFile + std::string(std::to_string(i)) + ".csv");
+        auto temp = packer(subfolder + std::to_string(i) + ".csv");
         time += temp.first;
         volOpt += temp.second;
     }
