@@ -173,15 +173,14 @@ std::pair<double, double> packer(std::string fileName) {
     std::vector<Item> Is;
 
     readcsv(Is, L, B, H, fileName);
-
-    threedcpp(Is, L, B, H);
-
-    double efficiency = outputRep(Is, L, B, H);
-
     std::uniform_int_distribution<> intDist(0, Is.size() - 1);
     std::uniform_real_distribution<> floatDist(0, 1);
 
     auto start = std::chrono::steady_clock::now();
+
+    threedcpp(Is, L, B, H);
+    double efficiency = outputRep(Is, L, B, H);
+
     for (double temp = TEMP_MAX; temp > TEMP_MIN; temp *= COOLING_RATE) {
         // Number of swaps evaluated at each temperature, hardcoded for now
         int swapsPerTemp = 10;
@@ -220,6 +219,7 @@ std::pair<double, double> packer(std::string fileName) {
             }
         }
     }
+    
     std::chrono::duration<double> diff = std::chrono::steady_clock::now() - start;
 
     std::cout << "Time : " << diff.count() << "s    ";
