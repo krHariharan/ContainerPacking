@@ -130,10 +130,15 @@ public:
 		loc->x = -1;
 		loc->y = -1;
 		loc->z = -1;
+		float locWeight = -1;
 
 		for(auto p: positions){
+			float weightBelow = 0;
 			x=p.first;
 			y=p.second;
+			if(loc->x>=0 && x>loc->x)
+				break;
+
 			flag = 1;
 			base = v[x][y];
 			if(base+I.h1>H)	
@@ -142,6 +147,7 @@ public:
 				continue;
 			for(int m=0; m<I.l1; m++){				
 				for(int n=0; n<I.b1; n++){
+					weightBelow += packedWeight[x+m][y+n];
 					if(v[x+m][y+n]!=base || minh[x+m][y+n]>=I.h1){
 						flag=0;	// flag position 0 if either consignemnt doesn't have the min height, or base is uneven at this area
 						break;
@@ -154,11 +160,11 @@ public:
 				if(flag==0)
 					break;	// position doesn't satisfy reqts - skipped
 			}
-			if(flag==1){	// position chosen
+			if(flag==1){	// position chosen -  check if weight distribution is better than previously chosen space
+				if(locWeight<0 || weightBelow < locWeight)
 				loc->x = x;
 				loc->y = y;
 				loc->z = base;
-				break;
 			}				
 		}
 		if(loc->x<0)
