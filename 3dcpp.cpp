@@ -40,6 +40,8 @@ typedef struct ItemType {
     int l1;
 	int b1;
     int h1;
+	int weight;
+	int stackWeight;
     bool packed;
 	bool stackable;
 	orientation o;
@@ -51,6 +53,7 @@ class Container{
 	int L, B, H;	// dimensions of container
 	vector<vector<int>> v;	// height upto which each coordinate is filled
 	vector<vector<int>> minh;	// minimum height a consignment must be to be placed in a given coordinate, to prevent being blocked by consingment in front
+	vector<vector<float>> maxWeight; // maximum area density an object placed in a coordinate can have
    	set<pair<int, int>> positions;	// (x, y) of the left rear corner of every available cuboidal space, in lexicographical order
 	vector<Item> packedItems;	// details of packed items, in order of packing
 public:
@@ -62,7 +65,8 @@ public:
 		
 		v.resize(L, vector<int>(B, 0));
 		minh.resize(L, vector<int>(B, 0));
-		
+		maxWeight.resize(L, vector<float>(B, -1));
+
 		positions.insert({0,0});
 	}	
 
@@ -88,6 +92,13 @@ public:
 			}
 		}
 
+		// updating stackable weight on top of packed consignment
+		float areaDensity = (float)I.weight/((float)I.l1*(float)I.b1);
+		float maxDensity = (float)I.stackWeight/((float)I.l1*(float)I.b1);
+		for(int m=x; m<x+I.l1; m++)
+			for(int n=y; n<y+I.b1; n++)
+				maxWeight[m][n] = min(maxDensity, maxWeight[m][n]-areaDensity);
+
 		// Updating remaining volume space of container if Item is not stackable
 		if(!I.stackable){
 			for(int m=x; m<x+I.l1; m++)
@@ -106,8 +117,10 @@ public:
 	}
 
 	// Given the dimensions of the consignment, in order of orientation, return the (x,y) coordinates at which the the consignment can be packed
-	Location* fit(int l, int b, int h){
+	Location* fit(Item I){
 		int flag = 0, x, y, base;
+
+		float areaDensity = (float)I.weight/((float)I.l1*(float)I.b1);
 
 		Location * loc = new Location;
 		loc->x = -1;
@@ -119,14 +132,18 @@ public:
 			y=p.second;
 			flag = 1;
 			base = v[x][y];
-			if(base+h>H)	
+			if(base+I.h1>H)	
 				continue;	// height of consignment, if packed at (x,y), exceeds the height of the container
-			if(x+l>L || y+b>B)
+			if(x+I.l1>L || y+I.b1>B)
 				continue;
-			for(int m=0; m<l; m++){				
-				for(int n=0; n<b; n++){
-					if(v[x+m][y+n]!=base || minh[x+m][y+n]>=h){
+			for(int m=0; m<I.l1; m++){				
+				for(int n=0; n<I.b1; n++){
+					if(v[x+m][y+n]!=base || minh[x+m][y+n]>=I.h1){
 						flag=0;	// flag position 0 if either consignemnt doesn't have the min height, or base is uneven at this area
+						break;
+					}
+					else if(maxWeight[x+m][y+n]<areaDensity){
+						flag=0;
 						break;
 					}
 				}
@@ -180,18 +197,18 @@ double greedy(Container C, vector<Item>& Items, int starting) {
 		sort(dim.begin(), dim.end());
     	vector<Item> Iarr(6);
 		// all possible orientations - ordered based on heuristic considering protrusion length and stability
-   		Iarr[0] = {I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, NULL};
-   		Iarr[1] = {I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, NULL};
-   		Iarr[2] = {I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, NULL};
-   		Iarr[3] = {I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, NULL};
-   		Iarr[4] = {I.l, I.b, I.h, dim[2], dim[1], dim[0], true, I.stackable, I.o, NULL};
-   		Iarr[5] = {I.l, I.b, I.h, dim[2], dim[0], dim[1], true, I.stackable, I.o, NULL};
+   		Iarr[0] = {I.l, I.b, I.h, dim[0], dim[2], dim[1], I.weight, I.stackWeight, true, I.stackable, I.o, NULL};
+   		Iarr[1] = {I.l, I.b, I.h, dim[1], dim[2], dim[0], I.weight, I.stackWeight, true, I.stackable, I.o, NULL};
+   		Iarr[2] = {I.l, I.b, I.h, dim[0], dim[1], dim[2], I.weight, I.stackWeight, true, I.stackable, I.o, NULL};
+   		Iarr[3] = {I.l, I.b, I.h, dim[1], dim[0], dim[2], I.weight, I.stackWeight, true, I.stackable, I.o, NULL};
+   		Iarr[4] = {I.l, I.b, I.h, dim[2], dim[1], dim[0], I.weight, I.stackWeight, true, I.stackable, I.o, NULL};
+   		Iarr[5] = {I.l, I.b, I.h, dim[2], dim[0], dim[1], I.weight, I.stackWeight, true, I.stackable, I.o, NULL};
 
    		for(int j=0; j<6; j++){
        		// if orientation i+1 is allowed for given package
 			if((I.o==Height && Iarr[j].h!=Iarr[j].h1) || (I.o==Length && Iarr[j].l!=Iarr[j].l1) || (I.o==Width && Iarr[j].b!=Iarr[j].b1))
 					continue;
-       		Iarr[j].pos = C.fit(Iarr[j].l1, Iarr[j].b1, Iarr[j].h1);
+       		Iarr[j].pos = C.fit(Iarr[j]);
        		if(Iarr[j].pos!=NULL){
 				C.pack(Iarr[j]);
 				break;
@@ -223,12 +240,12 @@ Container threedcpp(vector<Item>& Items, int L, int B, int H, int treeWidth=2) {
 		sort(dim.begin(), dim.end());
     	vector<Item> Iarr(6);
 		// all possible orientations - unlike the greedy fn, in decision tree fn, order is irrelevant
-   		Iarr[0] = {I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, NULL};
-   		Iarr[1] = {I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, NULL};
-   		Iarr[2] = {I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, NULL};
-   		Iarr[3] = {I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, NULL};
-   		Iarr[4] = {I.l, I.b, I.h, dim[2], dim[1], dim[0], true, I.stackable, I.o, NULL};
-   		Iarr[5] = {I.l, I.b, I.h, dim[2], dim[0], dim[1], true, I.stackable, I.o, NULL};
+   		Iarr[0] = {I.l, I.b, I.h, dim[0], dim[2], dim[1], I.weight, I.stackWeight, true, I.stackable, I.o, NULL};
+   		Iarr[1] = {I.l, I.b, I.h, dim[1], dim[2], dim[0], I.weight, I.stackWeight, true, I.stackable, I.o, NULL};
+   		Iarr[2] = {I.l, I.b, I.h, dim[0], dim[1], dim[2], I.weight, I.stackWeight, true, I.stackable, I.o, NULL};
+   		Iarr[3] = {I.l, I.b, I.h, dim[1], dim[0], dim[2], I.weight, I.stackWeight, true, I.stackable, I.o, NULL};
+   		Iarr[4] = {I.l, I.b, I.h, dim[2], dim[1], dim[0], I.weight, I.stackWeight, true, I.stackable, I.o, NULL};
+   		Iarr[5] = {I.l, I.b, I.h, dim[2], dim[0], dim[1], I.weight, I.stackWeight, true, I.stackable, I.o, NULL};
 
 		// updating decision tree options
 		for(int k=options.size()-1; k>=0; k--){
@@ -241,7 +258,7 @@ Container threedcpp(vector<Item>& Items, int L, int B, int H, int treeWidth=2) {
 				// check if orientation i+1 is allowed for given consignment
 				if((I.o==Height && Iarr[j].h!=Iarr[j].h1) || (I.o==Length && Iarr[j].l!=Iarr[j].l1) || (I.o==Width && Iarr[j].b!=Iarr[j].b1))
 					continue;
-				Iarr[j].pos = options[k].second.fit(Iarr[j].l1, Iarr[j].b1, Iarr[j].h1);
+				Iarr[j].pos = options[k].second.fit(Iarr[j]);
 				// if orientation i+1 is allowed for given consignment, pack into container and and keep this packing as an option
 				if(Iarr[j].pos!=NULL){
 					C = options[k].second;
