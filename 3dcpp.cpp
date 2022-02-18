@@ -118,6 +118,9 @@ public:
 			x=p.first;
 			y=p.second;
 			flag = 1;
+			if(loc->x >= 0 && x>loc->x)
+				break;
+
 			base = v[x][y];
 			if(base+h>H)	
 				continue;	// height of consignment, if packed at (x,y), exceeds the height of the container
@@ -133,11 +136,12 @@ public:
 				if(flag==0)
 					break;	// position doesn't satisfy reqts - skipped
 			}
-			if(flag==1){	// position chosen
-				loc->x = x;
-				loc->y = y;
-				loc->z = base;
-				break;
+			if(flag==1){	// position chosen - check max height
+				if(loc->z==-1 || loc->z < base){
+					loc->x = x;
+					loc->y = y;
+					loc->z = base;
+				}
 			}				
 		}
 		if(loc->x<0)
