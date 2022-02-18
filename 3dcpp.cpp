@@ -54,7 +54,8 @@ class Container{
 	vector<vector<int>> v;	// height upto which each coordinate is filled
 	vector<vector<int>> minh;	// minimum height a consignment must be to be placed in a given coordinate, to prevent being blocked by consingment in front
 	vector<vector<float>> maxWeight; // maximum area density an object placed in a coordinate can have
-   	set<pair<int, int>> positions;	// (x, y) of the left rear corner of every available cuboidal space, in lexicographical order
+   	vector<vector<float>> packedWeight;	// weight packed in each coordinate
+	set<pair<int, int>> positions;	// (x, y) of the left rear corner of every available cuboidal space, in lexicographical order
 	vector<Item> packedItems;	// details of packed items, in order of packing
 public:
 	// Constructor to create class objects, given properties [dimensions] of container
@@ -66,6 +67,7 @@ public:
 		v.resize(L, vector<int>(B, 0));
 		minh.resize(L, vector<int>(B, 0));
 		maxWeight.resize(L, vector<float>(B, -1));
+		packedWeight.resize(L, vector<float>(B, 0));
 
 		positions.insert({0,0});
 	}	
@@ -78,10 +80,18 @@ public:
 		int x=I.pos->x;
 		int y=I.pos->y;
 
-		// Updating remaining volume space of container after consignment is packed
+		// Updating remaining volume space of container, stackable weight, and stacked weight, after consignment is packed
+		float areaDensity = (float)I.weight/((float)I.l1*(float)I.b1);
+		float maxDensity = (float)I.stackWeight/((float)I.l1*(float)I.b1);
 		for(int m=x; m<x+I.l1; m++)
-			for(int n=y; n<y+I.b1; n++)
+			for(int n=y; n<y+I.b1; n++){
 				v[m][n]+=I.h1;
+				if(maxWeight[m][n]==-1)
+					maxWeight[m][n] = maxDensity;
+				else
+					maxWeight[m][n] = min(maxDensity, maxWeight[m][n]-areaDensity);
+				packedWeight[m][n]+=areaDensity;
+			}
 		
 		// updating minh - the minimum height another consignment needs to be, to be packed behind current consignment without being blocked when unloading
 		for(int n=y; n<y+I.b1; n++){
@@ -91,13 +101,7 @@ public:
 				minh[m][n] = v[x][n]-v[m][n];
 			}
 		}
-
-		// updating stackable weight on top of packed consignment
-		float areaDensity = (float)I.weight/((float)I.l1*(float)I.b1);
-		float maxDensity = (float)I.stackWeight/((float)I.l1*(float)I.b1);
-		for(int m=x; m<x+I.l1; m++)
-			for(int n=y; n<y+I.b1; n++)
-				maxWeight[m][n] = min(maxDensity, maxWeight[m][n]-areaDensity);
+				
 
 		// Updating remaining volume space of container if Item is not stackable
 		if(!I.stackable){
@@ -142,7 +146,7 @@ public:
 						flag=0;	// flag position 0 if either consignemnt doesn't have the min height, or base is uneven at this area
 						break;
 					}
-					else if(maxWeight[x+m][y+n]<areaDensity){
+					else if(maxWeight[x+m][y+n]<areaDensity && maxWeight[x+m][y+n]>=0){
 						flag=0;
 						break;
 					}
