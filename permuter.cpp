@@ -5,6 +5,10 @@
 #include <random>
 #include <string>
 #include <vector>
+#include<time.h>
+#include<bits/stdc++.h>
+
+using namespace std;
 
 struct Container {
     int len, wid, hei;
@@ -21,7 +25,7 @@ struct ConsignmentInfo {
     int length = 0, width = 0, height = 0, weight = 0;
     
     bool is_floor_only = 0, is_stackable = 0;
-    double stack_weight = 0;
+    double stack_weight = -1;
     std::string stack_restriction_type = "STACK_TYPE_NONE"; // consignments_stack_restriction_type_enum
     // can be 'STACK_TYPE_NONE','STACK_TYPE_SAME_CARGO_ONLY','STACK_TYPE_SAME_SIZE_CARGO_ONLY'
     
@@ -95,12 +99,12 @@ std::vector<int> read_txt(std::ifstream &data, Container &con, std::map<int, Con
 
 void write_csv(Container &con, std::map<int, ConsignmentInfo> &consignments, std::vector<int> &IDs, std::string filename) {
     std::ofstream table(filename);
+    int unstackableCount=0;
     table << "# " << con.len << " " << con.wid << " " << con.hei << "\n";
     table << "\"unique_consignment_id\",\"date_added\",\"delivery_deadline_date\",\"goods_type\",\"goods_quantity\",\"shipment_charges\",\"max_temperature\",\"min_temperature\",\"special_handling\",\"packaging_type\",\"length\",\"width\",\"height\",\"weight\",\"is_floor_only\",\"is_stackable\",\"stack_weight\",\"stack_restriction_type\",\"is_rotatable\",\"rotation_type\",\"color\",\"pickup_time_window_start\",\"pickup_time_window_end\",\"dropoff_time_window_start\",\"dropoff_time_window_end\",\"pickup_coordinate_id\",\"dropoff_coordinate_id\",\"pickup_address_id\",\"dropoff_address_id\",\"current_operator_id\",\"status\",\"pickup_timestamp\",\"delivered_timestamp\",\"box_description\"\n";
-
+    srand(time(0));
     for (int id : IDs) {
-        if(((double) rand() / (RAND_MAX)<=0.8))
-            consignments[id].is_stackable = 1;
+        double p = (double) rand() / (double) (RAND_MAX);          
         table << "\"" << id << "\",\"";
         table << consignments[id].date_added << "\",\"";
         table << consignments[id].delivery_deadline_date << "\",\"";
@@ -116,7 +120,14 @@ void write_csv(Container &con, std::map<int, ConsignmentInfo> &consignments, std
         table << consignments[id].height << "\",\"";
         table << consignments[id].weight << "\",\"";
         table << consignments[id].is_floor_only << "\",\"";
-        table << consignments[id].is_stackable << "\",\"";
+        if(p<=(double)0.8){
+            table << 1 << "\",\"";
+        }  
+        else{
+            table << 0 << "\",\"";
+            unstackableCount++;
+        }
+        // table << consignments[id].is_stackable << "\",\"";
         table << consignments[id].stack_weight << "\",\"";
         table << consignments[id].stack_restriction_type << "\",\"";
         table << consignments[id].is_rotatable << "\",\"";
@@ -136,6 +147,7 @@ void write_csv(Container &con, std::map<int, ConsignmentInfo> &consignments, std
         table << consignments[id].delivered_timestamp << "\",\"";
         table << consignments[id].box_description << "\"\n";
     }
+    cout<<unstackableCount<<endl;
 }
 
 int main() {
