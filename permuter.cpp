@@ -61,9 +61,6 @@ std::vector<int> read_txt(std::ifstream &data, Container &con, std::map<int, Con
         data >> new_consignment.length >> ls >> new_consignment.width >> ws >> new_consignment.height >> hs;
 
 
-        if(((double) rand() / (RAND_MAX)<=0.8))
-            new_consignment.is_stackable = 1;
-
         // convert ls, ws, hs to is_stackable and stack_restriction_type
         if (ls + ws + hs >= 1) {
             new_consignment.stack_restriction_type = "STACK_TYPE_SAME_CARGO_ONLY";
@@ -102,6 +99,8 @@ void write_csv(Container &con, std::map<int, ConsignmentInfo> &consignments, std
     table << "\"unique_consignment_id\",\"date_added\",\"delivery_deadline_date\",\"goods_type\",\"goods_quantity\",\"shipment_charges\",\"max_temperature\",\"min_temperature\",\"special_handling\",\"packaging_type\",\"length\",\"width\",\"height\",\"weight\",\"is_floor_only\",\"is_stackable\",\"stack_weight\",\"stack_restriction_type\",\"is_rotatable\",\"rotation_type\",\"color\",\"pickup_time_window_start\",\"pickup_time_window_end\",\"dropoff_time_window_start\",\"dropoff_time_window_end\",\"pickup_coordinate_id\",\"dropoff_coordinate_id\",\"pickup_address_id\",\"dropoff_address_id\",\"current_operator_id\",\"status\",\"pickup_timestamp\",\"delivered_timestamp\",\"box_description\"\n";
 
     for (int id : IDs) {
+        if(((double) rand() / (RAND_MAX)<=0.8))
+            consignments[id].is_stackable = 1;
         table << "\"" << id << "\",\"";
         table << consignments[id].date_added << "\",\"";
         table << consignments[id].delivery_deadline_date << "\",\"";
