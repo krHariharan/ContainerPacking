@@ -212,7 +212,7 @@ bool greaterPair(pair<double,Container>& a, pair<double,Container>& b){
 }
 
 // Given the consignments to be packed (in order of destination) and dimensions of container, returns container object with an optimal packing based on decision tree heurisitics
-Container threedcpp(vector<Item>& Items, int L, int B, int H, int treeWidth=2) {
+Container threedcpp(vector<Item>& Items, int L, int B, int H, int treeWidth=5) {
 	vector<pair<double,Container>> options;	// contains all possible packing options of limited size decision tree in descending order of volOpt
 	Container C(L,B,H);
 	options.push_back({greedy(C, Items, Items.size()-1), C});	// initializing options with empty container and purely greedy packing volume optimization
@@ -255,11 +255,21 @@ Container threedcpp(vector<Item>& Items, int L, int B, int H, int treeWidth=2) {
 		}
 
 		// sort options in descending order of volume optimization
-		sort(options.begin(), options.end(), greaterPair);
+		//sort(options.begin(), options.end(), greaterPair);
 
 		// keeping 'treeWidth' most optimal packings
-		if(options.size()>treeWidth)
+		if(options.size()>treeWidth){
+			for(int i=0; i<treeWidth; i++){
+				int greatest = i;
+				for(int j=i+1; j<options.size(); j++){
+					if(greaterPair(options[j], options[greatest])){
+						greatest = j;
+					}
+				}
+				swap(options[i], options[greatest]);
+			}
 			options.resize(treeWidth, {greedy(Container(L,B,H), Items, Items.size()-1), Container(L,B,H)});
+		}
    	}
 	return options[0].second;
 }
