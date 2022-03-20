@@ -290,13 +290,13 @@ pair<double, double> packer(string filename) {
         for (int i = 0; i < swaps_per_temp; i++) {
             if(i%5<4){
                 int itemNo = int_dist(rng);
-                int a = orientation_dist(rng), b = orientation_dist(rng);
+                int a = int_dist(rng), b = int_dist(rng);
 
                 while (b == a) {
-                    b = orientation_dist(rng);
+                    b = int_dist(rng);
                 }
 
-                swap(Is[itemNo].o[a], Is[itemNo].o[b]);
+                swap(Is[a], Is[b]);
 
                 C = threed_cpp(Is, L, B, H);
                 output = output_rep(C);
@@ -319,7 +319,7 @@ pair<double, double> packer(string filename) {
                 }
 
                 if (rand_val > probability) { // probability too low, revert the change
-                    swap(Is[itemNo].o[b], Is[itemNo].o[a]);
+                    swap(Is[b], Is[a]);
                 } else {
                     efficiency = new_eff;
                     unloadingCostCount = output.second;
