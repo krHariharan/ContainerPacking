@@ -14,9 +14,9 @@ public:
     int x = -1, y = -1, z = -1;
 
     double operator-(const Location &other) const {
-        return sqrt(pow(x - other.x, 2) +
-                         pow(y - other.y, 2) +
-                         pow(z - other.z, 2));
+        if(x==-1 || other.x!=-1)
+            return -1;
+        return sqrt(pow(x - other.x, 2) + pow(y - other.y, 2) + pow(z - other.z, 2));
     }
 };
 
@@ -109,8 +109,7 @@ public:
         // minh ensures that a future item does not hide behind an already placed item
         for (int m = loc.x - 1; m >= 0; m--) {
             for (int n = loc.y; n < loc.y + b; n++) {
-                if (v[m][n] >= v[loc.x][n]) break;
-
+                // if (v[m][n] >= v[loc.x][n]) break;
                 minh[m][n] = max(v[loc.x][n], minh[m][n]);
             }
         }
@@ -128,7 +127,7 @@ public:
         return loc;
     }
 
-    pair<double, int> cost(int i){
+    pair<double, int> cost(int i, int debug=false){
         int count=0;
         double currCost = 0.0;
         if(unloadingCost[i].second!=-1)
@@ -136,17 +135,17 @@ public:
         for(int j=packed.size() - 1; j>=0; j--){
             if(i!=j && packed[i].is_blocked_by(packed[j]) && packed[i].locNo<packed[j].locNo){
                 if(packed[j].stackable)
-                    currCost+=2*(cost(j).first + (double)(packed[j].l*packed[j].b*packed[j].h)); 
+                    currCost+=2*(cost(j, debug).first + (double)(packed[j].l*packed[j].b*packed[j].h)); 
                 else
-                    currCost+=0.5*(cost(j).first + (double)(packed[j].l*packed[j].b*packed[j].h));
+                    currCost+=0.5*(cost(j, debug).first + (double)(packed[j].l*packed[j].b*packed[j].h));
                 count+=cost(j).second+1;
-                // if(debug){
-                //     if(C.packed[i].is_behind(C.packed[j]))
-                //         cout<<"behind ";
-                //     if(C.packed[i].is_below(C.packed[j]))
-                //         cout<<"below ";
-                //     printf("%d: (%d, %d, %d)->(%d, %d, %d) blocked by %d: (%d, %d, %d)->(%d, %d, %d)\n", C.packed[i].locNo, C.packed[i].pos.x, C.packed[i].pos.y, C.packed[i].pos.z, C.packed[i].pos.x+C.packed[i].o[0], C.packed[i].pos.y+C.packed[i].o[1], C.packed[i].pos.z+C.packed[i].o[2], C.packed[j].locNo, C.packed[j].pos.x, C.packed[j].pos.y, C.packed[j].pos.z, C.packed[j].pos.x+C.packed[j].o[0], C.packed[j].pos.y+C.packed[j].o[1], C.packed[j].pos.z+C.packed[j].o[2]);
-                // }
+                if(debug){
+                    if(packed[i].is_behind(packed[j]))
+                        cout<<"behind ";
+                    if(packed[i].is_below(packed[j]))
+                        cout<<"below ";
+                    printf("%d: (%d, %d, %d)->(%d, %d, %d) blocked by %d: (%d, %d, %d)->(%d, %d, %d)\n", packed[i].locNo, packed[i].pos.x, packed[i].pos.y, packed[i].pos.z, packed[i].pos.x+ packed[i].o[0], packed[i].pos.y+ packed[i].o[1], packed[i].pos.z+ packed[i].o[2], packed[j].locNo, packed[j].pos.x, packed[j].pos.y, packed[j].pos.z, packed[j].pos.x+ packed[j].o[0], packed[j].pos.y+ packed[j].o[1], packed[j].pos.z+ packed[j].o[2]);
+                }
             }
         }
         unloadingCost[i] = {currCost, count};
@@ -178,6 +177,9 @@ Container threed_cpp(vector<Item> &items, int L, int B, int H, bool DEBUG=false)
                     cout<<"packing "<<item_rot[i].sNo<<" at "<<item_rot[i].pos<<endl;
                 break;
                 // cout << items[i].pos << "\n";
+            }
+            else{
+                items[i].pos = {-1, -1, -1};
             }
         }
         
@@ -254,7 +256,7 @@ pair<double, int> output_rep(Container &C, bool debug=false) {
         // cout << "\tlocation : " << Is[i].pos->x << 'x' << Is[i].pos->y << 'x' << Is[i].pos->z;
         vol = (double)(C.packed[i].l * C.packed[i].b * C.packed[i].h);
         occ_vol += vol;
-        occ_vol -= C.cost(i).first;
+        occ_vol -= C.cost(i, debug).first;
         count += C.cost(i).second;
         // } else {
         // cout << "\nItem " << i + 1 << "\tNot Packed";
@@ -277,12 +279,11 @@ pair<double, double> packer(string filename) {
 
     Container C = threed_cpp(Is, L, B, H);
     pair<double, int> output = output_rep(C, true);
-	double efficiency = output.first;
-	int unloadingCostCount = output.second;
+	double efficiency = output.first, bestEfficiency = output.first;
+	int unloadingCostCount = output.second, bestKaCost = output.second;
 	if(true){
 		cout<<"Naive efficency : "<<efficiency*100<<"%\tunloading cost : "<<unloadingCostCount<<endl;
 	}
-
     for (double temp = TEMP_MAX; temp > TEMP_MIN; temp *= COOLING_RATE) {
         // Number of swaps evaluated at each temperature, hardcoded for now
         int swaps_per_temp = 20;
@@ -295,7 +296,8 @@ pair<double, double> packer(string filename) {
                 while (b == a) {
                     b = int_dist(rng);
                 }
-
+                
+                Item IsA = Is[a], IsB = Is[b];
                 swap(Is[a], Is[b]);
 
                 C = threed_cpp(Is, L, B, H);
@@ -304,7 +306,22 @@ pair<double, double> packer(string filename) {
 
                 // change in energy between new and old state, i.e. cost function
                 // = (change in efficiency in %) + (euclidean distance b/w the items / 100)
-                double del_E = (efficiency - new_eff) * 100 + (Is[a].pos - Is[b].pos) / 100;
+                double adist, bdist;
+                if(IsA.pos.x==-1 || Is[a].pos.x==-1)
+                    adist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
+                if(Is[a].pos.x==-1 && Is[a].pos.x==-1)
+                        adist = 0;
+                else
+                    adist = Is[a].pos - IsA.pos;
+                
+                if(IsB.pos.x==-1 || Is[b].pos.x==-1)
+                    bdist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
+                if(Is[B].pos.x==-1 && Is[b].pos.x==-1)
+                    bdist = 0;
+                else
+                    bdist = Is[b].pos - IsB.pos;
+
+                double del_E = (efficiency - new_eff) * 100 - (adist + bdist) / 100;
 
                 // probability = exp(-ΔE / T)
                 float probability = exp(-del_E / temp);
@@ -323,6 +340,11 @@ pair<double, double> packer(string filename) {
                 } else {
                     efficiency = new_eff;
                     unloadingCostCount = output.second;
+                }
+
+                if(new_eff>bestEfficiency){
+                    bestEfficiency = new_eff;
+                    bestKaCost = output.second;
                 }
             }
             else{
@@ -332,6 +354,7 @@ pair<double, double> packer(string filename) {
                     b = int_dist(rng);
                 }
 
+                Item IsA = Is[a], IsB = Is[b];
                 swap(Is[a], Is[b]);
 
                 C = threed_cpp(Is, L, B, H);
@@ -340,7 +363,22 @@ pair<double, double> packer(string filename) {
 
                 // change in energy between new and old state, i.e. cost function
                 // = (change in efficiency in %) + (euclidean distance b/w the items / 100)
-                double del_E = (efficiency - new_eff) * 100 + (Is[a].pos - Is[b].pos) / 100;
+                double adist, bdist;
+                if(IsA.pos.x==-1 || Is[a].pos.x==-1)
+                    adist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
+                if(Is[a].pos.x==-1 && Is[a].pos.x==-1)
+                        adist = 0;
+                else
+                    adist = Is[a].pos - IsA.pos;
+                
+                if(IsB.pos.x==-1 || Is[b].pos.x==-1)
+                    bdist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
+                if(Is[B].pos.x==-1 && Is[b].pos.x==-1)
+                    bdist = 0;
+                else
+                    bdist = Is[b].pos - IsB.pos;
+
+                double del_E = (efficiency - new_eff) * 100 - (adist + bdist) / 100;
 
                 // probability = exp(-ΔE / T)
                 float probability = exp(-del_E / temp);
@@ -360,15 +398,22 @@ pair<double, double> packer(string filename) {
                     efficiency = new_eff;
                     unloadingCostCount = output.second;
                 }
+
+                if(new_eff>bestEfficiency){
+                    bestEfficiency = new_eff;
+                    bestKaCost = output.second;
+                }
             }
         }
     }
 
     chrono::duration<double> diff = chrono::steady_clock::now() - start;
 
-    cout << "Time : " << diff.count() << "s    ";
-    cout << "Volume Optimization : " << efficiency * 100 << "%\n";
+    cout << "Time : " << diff.count() << "s\n";
+    cout << "Last iter: Volume Optimization : " << efficiency * 100 << "%";
 	cout << "Unloading Cost : " << unloadingCostCount << endl;
+    cout << "Best iter: Volume Optimization : " << bestEfficiency * 100 << "%";
+	cout << "Unloading Cost : " << bestKaCost << endl;
     return {diff.count(), efficiency * 100};
 }
 
