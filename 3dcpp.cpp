@@ -14,7 +14,7 @@ public:
     int x = -1, y = -1, z = -1;
 
     double operator-(const Location &other) const {
-        if(x==-1 || other.x!=-1)
+        if(x==-1 || other.x==-1)
             return -1;
         return sqrt(pow(x - other.x, 2) + pow(y - other.y, 2) + pow(z - other.z, 2));
     }
@@ -157,7 +157,7 @@ Container threed_cpp(vector<Item> &items, int L, int B, int H, bool DEBUG=false)
     Container C(L, B, H);
     for (int i = items.size() - 1; i >= 0; i--) {
         Item I = items[i];
-        
+
         vector<int> dim{I.l, I.b, I.h};
         sort(dim.begin(), dim.end());
         vector<Item> item_rot(6); // rotations of the item
@@ -168,18 +168,19 @@ Container threed_cpp(vector<Item> &items, int L, int B, int H, bool DEBUG=false)
         item_rot[4] = {I.sNo, I.locNo, I.l, I.b, I.h, {dim[2], dim[1], dim[0]}, true, I.stackable};
         item_rot[5] = {I.sNo, I.locNo, I.l, I.b, I.h, {dim[2], dim[0], dim[1]}, true, I.stackable};
         
-        for(int i=0; i<6; i++){
-            item_rot[i].pos = items[i].pos = C.fit(item_rot[i].o[0], item_rot[i].o[1], item_rot[i].o[2], item_rot[i].stackable);
-            if (item_rot[i].pos.x >= 0) {
-                C.packed.push_back(item_rot[i]);
+        for(int j=0; j<6; j++){
+            item_rot[j].pos = items[i].pos = C.fit(item_rot[j].o[0], item_rot[j].o[1], item_rot[j].o[2], item_rot[j].stackable);
+            if (item_rot[j].pos.x >= 0) {
+                items[i].packed = true;
+                C.packed.push_back(item_rot[j]);
                 C.unloadingCost.push_back({-1.0, -1});
                 if(DEBUG)
-                    cout<<"packing "<<item_rot[i].sNo<<" at "<<item_rot[i].pos<<endl;
+                    cout<<"packing "<<item_rot[j].sNo<<" at "<<item_rot[j].pos<<endl;
                 break;
                 // cout << items[i].pos << "\n";
             }
             else{
-                items[i].pos = {-1, -1, -1};
+                items[i].packed=false;
             }
         }
         
@@ -210,7 +211,7 @@ void read_csv(vector<Item> &Is, int &L, int &B, int &H, string filename) {
 
         Item I;
 		I.sNo = I.locNo = i++;
-        I.packed = true;
+        I.packed = false;
 
         for (int i = 0; getline(ss, item, ','); ++i) {
             if (i == 10)
@@ -229,19 +230,6 @@ void read_csv(vector<Item> &Is, int &L, int &B, int &H, string filename) {
 			}
         }
         Is.push_back(I);
-        // vector<int> dim{I.l, I.b, I.h};
-        // sort(dim.begin(), dim.end());
-
-        // vector<Item> item_rot(6); // rotations of the item
-        // item_rot[0] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[2], dim[1], true};
-        // item_rot[1] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[2], dim[0], true};
-        // item_rot[2] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[1], dim[2], true};
-        // item_rot[3] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[0], dim[2], true};
-        // item_rot[4] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[1], dim[0], true};
-        // item_rot[5] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[0], dim[1], true};
-        // for (int i=0; i<6; i++){
-        //     Is.push_back(item_rot[i]);
-        // }
     }
     cout<<"Package count "<<Is.size()<<endl;
 }
@@ -278,6 +266,7 @@ pair<double, double> packer(string filename) {
     auto start = chrono::steady_clock::now();
 
     Container C = threed_cpp(Is, L, B, H);
+
     pair<double, int> output = output_rep(C, true);
 	double efficiency = output.first, bestEfficiency = output.first;
 	int unloadingCostCount = output.second, bestKaCost = output.second;
@@ -287,18 +276,20 @@ pair<double, double> packer(string filename) {
     for (double temp = TEMP_MAX; temp > TEMP_MIN; temp *= COOLING_RATE) {
         // Number of swaps evaluated at each temperature, hardcoded for now
         int swaps_per_temp = 20;
-
         for (int i = 0; i < swaps_per_temp; i++) {
             if(i%5<4){
-                int itemNo = int_dist(rng);
-                int a = int_dist(rng), b = int_dist(rng);
+                int itemNo;
+                do{
+                    itemNo = int_dist(rng);
+                }while(!Is[itemNo].packed);
+                int a = orientation_dist(rng), b = orientation_dist(rng);
 
                 while (b == a) {
-                    b = int_dist(rng);
+                    b = orientation_dist(rng);
                 }
                 
-                Item IsA = Is[a], IsB = Is[b];
-                swap(Is[a], Is[b]);
+                Item IsOld = Is[itemNo];
+                swap(Is[itemNo].o[a], Is[itemNo].o[b]);
 
                 C = threed_cpp(Is, L, B, H);
                 output = output_rep(C);
@@ -306,22 +297,13 @@ pair<double, double> packer(string filename) {
 
                 // change in energy between new and old state, i.e. cost function
                 // = (change in efficiency in %) + (euclidean distance b/w the items / 100)
-                double adist, bdist;
-                if(IsA.pos.x==-1 || Is[a].pos.x==-1)
-                    adist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
-                if(Is[a].pos.x==-1 && Is[a].pos.x==-1)
-                        adist = 0;
+                double dist;
+                if(Is[itemNo].pos.x==-1)
+                    dist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
                 else
-                    adist = Is[a].pos - IsA.pos;
-                
-                if(IsB.pos.x==-1 || Is[b].pos.x==-1)
-                    bdist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
-                if(Is[B].pos.x==-1 && Is[b].pos.x==-1)
-                    bdist = 0;
-                else
-                    bdist = Is[b].pos - IsB.pos;
+                    dist = Is[itemNo].pos - IsOld.pos;
 
-                double del_E = (efficiency - new_eff) * 100 - (adist + bdist) / 100;
+                double del_E = (efficiency - new_eff) * 100 + (dist) / 100;
 
                 // probability = exp(-ΔE / T)
                 float probability = exp(-del_E / temp);
@@ -336,7 +318,7 @@ pair<double, double> packer(string filename) {
                 }
 
                 if (rand_val > probability) { // probability too low, revert the change
-                    swap(Is[b], Is[a]);
+                    swap(Is[itemNo].o[b], Is[itemNo].o[a]);
                 } else {
                     efficiency = new_eff;
                     unloadingCostCount = output.second;
@@ -350,7 +332,7 @@ pair<double, double> packer(string filename) {
             else{
                 int a = int_dist(rng), b = int_dist(rng);
 
-                while (b == a) {
+                while (b == a || (!Is[a].packed && !Is[b].packed)) {
                     b = int_dist(rng);
                 }
 
@@ -364,21 +346,26 @@ pair<double, double> packer(string filename) {
                 // change in energy between new and old state, i.e. cost function
                 // = (change in efficiency in %) + (euclidean distance b/w the items / 100)
                 double adist, bdist;
-                if(IsA.pos.x==-1 || Is[a].pos.x==-1)
-                    adist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
-                if(Is[a].pos.x==-1 && Is[a].pos.x==-1)
+                if(IsA.pos.x==-1 || Is[a].pos.x==-1){
+                    if(Is[a].pos.x==-1 && Is[a].pos.x==-1)
                         adist = 0;
-                else
+                    else
+                        adist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
+                }
+                else{
                     adist = Is[a].pos - IsA.pos;
+                }
                 
-                if(IsB.pos.x==-1 || Is[b].pos.x==-1)
-                    bdist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
-                if(Is[B].pos.x==-1 && Is[b].pos.x==-1)
-                    bdist = 0;
+                if(IsB.pos.x==-1 || Is[b].pos.x==-1){
+                    if(IsB.pos.x==-1 && Is[b].pos.x==-1)
+                        bdist=0;
+                    else
+                        bdist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
+                }
                 else
                     bdist = Is[b].pos - IsB.pos;
 
-                double del_E = (efficiency - new_eff) * 100 - (adist + bdist) / 100;
+                double del_E = (efficiency - new_eff) * 100 + (adist + bdist) / 100;
 
                 // probability = exp(-ΔE / T)
                 float probability = exp(-del_E / temp);
@@ -406,7 +393,6 @@ pair<double, double> packer(string filename) {
             }
         }
     }
-
     chrono::duration<double> diff = chrono::steady_clock::now() - start;
 
     cout << "Time : " << diff.count() << "s\n";
