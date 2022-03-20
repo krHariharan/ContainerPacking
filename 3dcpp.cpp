@@ -1,9 +1,9 @@
 #include <bits/stdc++.h>
 using namespace std;
 // log(0.1 / 1) / log(0.9) is approximately 21 sweeps
-const double TEMP_MAX = 1, TEMP_MIN = 0.1, COOLING_RATE = 0.9;
+const double TEMP_MAX = 1, TEMP_MIN = 0.1, COOLING_RATE = 0.95;
 
-bool DEBUG = true;
+bool DEBUG = false;
 
 random_device rd;
 seed_seq sd{rd(), rd(), rd(), rd()};
@@ -31,6 +31,7 @@ public:
     int l, b, h;
     int o[3];
     bool packed;
+    bool stackable;
     Location pos;
 
     bool is_below(const Item &I) const {
@@ -53,12 +54,12 @@ public:
     }
 };
 
-class Container {
-    int L, B, H;                             // dimensions of the container
+class Container { 
     vector<vector<int>> v;         // current height at (x, y)
     vector<vector<int>> minh;      // minimum allowed item height at (x, y)
     set<pair<int, int>> positions; // current available positions
 public:
+    int L, B, H;                             // dimensions of the container
     vector<Item> packed;
     Container(int x, int y, int z) : L(x), B(y), H(z),
                                      v(x, vector<int>(y, 0)),
@@ -66,7 +67,7 @@ public:
         positions.insert({0, 0});
     }
 
-    Location fit(int l, int b, int h) {
+    Location fit(int l, int b, int h, bool stackable=true) {
         bool pos_is_suitable = false;
         int x, y, base;
         Location loc;
@@ -83,7 +84,7 @@ public:
             // ensure base is uniform from (x, y) to (x + l, y + b)
             for (int m = 0; m < l; m++) {
                 for (int n = 0; n < b; n++) {
-                    if (v[x + m][y + n] != base || minh[x + m][y + n] >= h) {
+                    if (v[x + m][y + n] != base || minh[x + m][y + n] >= base + h) {
                         pos_is_suitable = false;
                         break;
                     }
@@ -109,8 +110,14 @@ public:
             for (int n = loc.y; n < loc.y + b; n++) {
                 if (v[m][n] >= v[loc.x][n]) break;
 
-                minh[m][n] = v[loc.x][n] - v[m][n];
+                minh[m][n] = max(v[loc.x][n], minh[m][n]);
             }
+        }
+
+        if(!stackable){
+            for (int m = loc.x; m < loc.x + l; m++)
+                for (int n = loc.y; n < loc.y + b; n++)
+                    v[m][n] = H;
         }
 
         // additional possible positions
@@ -121,25 +128,34 @@ public:
     }
 };
 
-Container threed_cpp(vector<Item> &items, int L, int B, int H) {
+Container threed_cpp(vector<Item> &items, int L, int B, int H, bool DEBUG=false) {
     Container C(L, B, H);
     for (int i = items.size() - 1; i >= 0; i--) {
-        Item item = items[i];
-        item.pos = C.fit(item.o[0], item.o[1], item.o[2]);
-        if (item.pos.x >= 0) {
-            C.packed.push_back(item);
-            // cout << items[i].pos << "\n";
+        Item I = items[i];
+        
+        vector<int> dim{I.l, I.b, I.h};
+        sort(dim.begin(), dim.end());
+        vector<Item> item_rot(6); // rotations of the item
+        item_rot[0] = {I.sNo, I.locNo, I.l, I.b, I.h, {dim[0], dim[2], dim[1]}, true, I.stackable};
+        item_rot[1] = {I.sNo, I.locNo, I.l, I.b, I.h, {dim[1], dim[2], dim[0]}, true, I.stackable};
+        item_rot[2] = {I.sNo, I.locNo, I.l, I.b, I.h, {dim[0], dim[1], dim[2]}, true, I.stackable};
+        item_rot[3] = {I.sNo, I.locNo, I.l, I.b, I.h, {dim[1], dim[0], dim[2]}, true, I.stackable};
+        item_rot[4] = {I.sNo, I.locNo, I.l, I.b, I.h, {dim[2], dim[1], dim[0]}, true, I.stackable};
+        item_rot[5] = {I.sNo, I.locNo, I.l, I.b, I.h, {dim[2], dim[0], dim[1]}, true, I.stackable};
+        
+        for(int i=0; i<6; i++){
+            item_rot[i].pos = C.fit(item_rot[i].o[0], item_rot[i].o[1], item_rot[i].o[2], item_rot[i].stackable);
+            if (item_rot[i].pos.x >= 0) {
+                C.packed.push_back(item_rot[i]);
+                if(DEBUG)
+                    cout<<"packing "<<item_rot[i].sNo<<" at "<<item_rot[i].pos<<endl;
+                break;
+                // cout << items[i].pos << "\n";
+            }
         }
-        // vector<int> dim{I.l, I.b, I.h};
-        // sort(dim.begin(), dim.end());
+        
 
-        // vector<Item> item_rot(6); // rotations of the item
-        // item_rot[0] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[2], dim[1], true};
-        // item_rot[1] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[2], dim[0], true};
-        // item_rot[2] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[1], dim[2], true};
-        // item_rot[3] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[0], dim[2], true};
-        // item_rot[4] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[1], dim[0], true};
-        // item_rot[5] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[0], dim[1], true};
+        
 
         // random_shuffle(item_rot.begin(), item_rot.end());
         // cout<<"Fitting consignment "<<i<<'\n';
@@ -174,6 +190,14 @@ void read_csv(vector<Item> &Is, int &L, int &B, int &H, string filename) {
                 I.b = I.o[1] = stoi(item.substr(1, item.size() - 2));
             else if (i == 12)
                 I.h = I.o[2] = stoi(item.substr(1, item.size() - 2));
+            else if(i==15) {
+				// cout<<item.substr(1, item.size()-2)<<' ';
+				if(stoi(item.substr(1, item.size()-2)) == 1)
+					I.stackable = true;
+				else
+					I.stackable = false;
+				//cout<<I.stackable<<endl;
+			}
         }
         Is.push_back(I);
         // vector<int> dim{I.l, I.b, I.h};
@@ -193,32 +217,31 @@ void read_csv(vector<Item> &Is, int &L, int &B, int &H, string filename) {
     cout<<"Package count "<<Is.size()<<endl;
 }
 
-pair<double, int> output_rep(vector<Item> &Is, int L, int B, int H, bool debug=false) {
-    double occ_vol = 0.0, total_vol = (double)(L * B * H), vol;
+pair<double, int> output_rep(Container &C, bool debug=false) {
+    double occ_vol = 0.0, total_vol = (double)(C.L * C.B * C.B), vol;
 	int count=0;
-    for (int i = Is.size() - 1; i >= 0; i--) {
-        if (Is[i].packed) {
-            // cout << "\nItem " << i + 1;
-            // cout << "\tdimensions : " << Is[i].l << 'x' << Is[i].b << 'x' << Is[i].h;
-            // cout << "\norientation : " << Is[i].o[0] << 'x' << Is[i].o[1] << 'x' << Is[i].o[2];
-            // cout << "\tlocation : " << Is[i].pos->x << 'x' << Is[i].pos->y << 'x' << Is[i].pos->z;
-            vol = (double)(Is[i].l * Is[i].b * Is[i].h);
-			occ_vol += vol;
-            // } else {
-            // cout << "\nItem " << i + 1 << "\tNot Packed";
-			for(int j=Is.size() - 1; j>=0; j--){
-				if(i!=j && Is[i].is_blocked_by(Is[j]) && Is[i].locNo<Is[j].locNo){
-					occ_vol-=4*(double)(Is[j].l * Is[j].b * Is[j].h);
-					count++;
-					if(debug){
-						if(Is[i].is_behind(Is[j]))
-							cout<<"behind ";
-						if(Is[i].is_below(Is[j]))
-							cout<<"below ";
-					 	printf("%d: (%d, %d, %d)->(%d, %d, %d) blocked by %d: (%d, %d, %d)->(%d, %d, %d)\n", i, Is[i].pos.x, Is[i].pos.y, Is[i].pos.z, Is[i].pos.x+Is[i].o[0], Is[i].pos.y+Is[i].o[1], Is[i].pos.z+Is[i].o[2], j, Is[j].pos.x, Is[j].pos.y, Is[j].pos.z, Is[j].pos.x+Is[j].o[0], Is[j].pos.y+Is[j].o[1], Is[j].pos.z+Is[j].o[2]);
-					}
-				}
-			}
+    for (int i = C.packed.size() - 1; i >= 0; i--) {
+        // cout << "\nItem " << i + 1;
+        // cout << "\tdimensions : " << Is[i].l << 'x' << Is[i].b << 'x' << Is[i].h;
+        // cout << "\norientation : " << Is[i].o[0] << 'x' << Is[i].o[1] << 'x' << Is[i].o[2];
+        // cout << "\tlocation : " << Is[i].pos->x << 'x' << Is[i].pos->y << 'x' << Is[i].pos->z;
+        vol = (double)(C.packed[i].l * C.packed[i].b * C.packed[i].h);
+        occ_vol += vol;
+        // } else {
+        // cout << "\nItem " << i + 1 << "\tNot Packed";
+        for(int j=C.packed.size() - 1; j>=0; j--){
+            if(i!=j && C.packed[i].is_blocked_by(C.packed[j]) && C.packed[i].locNo<C.packed[j].locNo){
+                if(C.packed[j].stackable)
+                    occ_vol-=2*(double)(C.packed[j].l * C.packed[j].b * C.packed[j].h);
+                count++;
+                if(debug){
+                    if(C.packed[i].is_behind(C.packed[j]))
+                        cout<<"behind ";
+                    if(C.packed[i].is_below(C.packed[j]))
+                        cout<<"below ";
+                    printf("%d: (%d, %d, %d)->(%d, %d, %d) blocked by %d: (%d, %d, %d)->(%d, %d, %d)\n", C.packed[i].locNo, C.packed[i].pos.x, C.packed[i].pos.y, C.packed[i].pos.z, C.packed[i].pos.x+C.packed[i].o[0], C.packed[i].pos.y+C.packed[i].o[1], C.packed[i].pos.z+C.packed[i].o[2], C.packed[j].locNo, C.packed[j].pos.x, C.packed[j].pos.y, C.packed[j].pos.z, C.packed[j].pos.x+C.packed[j].o[0], C.packed[j].pos.y+C.packed[j].o[1], C.packed[j].pos.z+C.packed[j].o[2]);
+                }
+            }
         }
     }
 
@@ -237,53 +260,91 @@ pair<double, double> packer(string filename) {
 
     auto start = chrono::steady_clock::now();
 
-    Container C = threed_cpp(Is, L, B, H);
-    pair<double, int> output = output_rep(C.packed, L, B, H, DEBUG);
+    Container C = threed_cpp(Is, L, B, H, true);
+    pair<double, int> output = output_rep(C, true);
 	double efficiency = output.first;
 	int unloadingCostCount = output.second;
-	if(DEBUG){
-		cout<<"Naive efficency : "<<efficiency<<"%\tunloading cost : "<<unloadingCostCount<<endl;
+	if(true){
+		cout<<"Naive efficency : "<<efficiency*100<<"%\tunloading cost : "<<unloadingCostCount<<endl;
 	}
 
     for (double temp = TEMP_MAX; temp > TEMP_MIN; temp *= COOLING_RATE) {
         // Number of swaps evaluated at each temperature, hardcoded for now
-        int swaps_per_temp = 10;
+        int swaps_per_temp = 20;
 
         for (int i = 0; i < swaps_per_temp; i++) {
-            int itemNo = int_dist(rng);
-            int a = orientation_dist(rng), b = orientation_dist(rng);
+            if(i%5<4){
+                int itemNo = int_dist(rng);
+                int a = orientation_dist(rng), b = orientation_dist(rng);
 
-            while (b == a) {
-                b = orientation_dist(rng);
+                while (b == a) {
+                    b = orientation_dist(rng);
+                }
+
+                swap(Is[itemNo].o[a], Is[itemNo].o[b]);
+
+                C = threed_cpp(Is, L, B, H);
+                output = output_rep(C);
+                double new_eff = output.first;
+
+                // change in energy between new and old state, i.e. cost function
+                // = (change in efficiency in %) + (euclidean distance b/w the items / 100)
+                double del_E = (efficiency - new_eff) * 100 + (Is[a].pos - Is[b].pos) / 100;
+
+                // probability = exp(-ΔE / T)
+                float probability = exp(-del_E / temp);
+                float rand_val = float_dist(rng);
+
+                if (DEBUG) {
+                    cout << "unloading Cost : " << output.second
+                            << " delEfficiency : " << (efficiency - new_eff) * 100
+                            << "  dist : " << (Is[a].pos - Is[b].pos) / 100
+                            << "  del_E : " << del_E
+                            << "  probability : " << probability << endl;
+                }
+
+                if (rand_val > probability) { // probability too low, revert the change
+                    swap(Is[itemNo].o[b], Is[itemNo].o[a]);
+                } else {
+                    efficiency = new_eff;
+                    unloadingCostCount = output.second;
+                }
             }
+            else{
+                int a = int_dist(rng), b = int_dist(rng);
 
-            swap(Is[itemNo].o[a], Is[itemNo].o[b]);
+                while (b == a) {
+                    b = int_dist(rng);
+                }
 
-            C = threed_cpp(Is, L, B, H);
-			output = output_rep(C.packed, L, B, H);
-            double new_eff = output.first;
+                swap(Is[a], Is[b]);
 
-            // change in energy between new and old state, i.e. cost function
-            // = (change in efficiency in %) + (euclidean distance b/w the items / 100)
-            double del_E = (efficiency - new_eff) * 100 + (Is[a].pos - Is[b].pos) / 100;
+                C = threed_cpp(Is, L, B, H);
+                output = output_rep(C);
+                double new_eff = output.first;
 
-            // probability = exp(-ΔE / T)
-            float probability = exp(-del_E / temp);
-            float rand_val = float_dist(rng);
+                // change in energy between new and old state, i.e. cost function
+                // = (change in efficiency in %) + (euclidean distance b/w the items / 100)
+                double del_E = (efficiency - new_eff) * 100 + (Is[a].pos - Is[b].pos) / 100;
 
-            if (DEBUG) {
-                cout << "unloading Cost : " << output.second
-						  << " delEfficiency : " << (efficiency - new_eff) * 100
-                          << "  dist : " << (Is[a].pos - Is[b].pos) / 100
-                          << "  del_E : " << del_E
-                          << "  probability : " << probability << endl;
-            }
+                // probability = exp(-ΔE / T)
+                float probability = exp(-del_E / temp);
+                float rand_val = float_dist(rng);
 
-            if (rand_val > probability) { // probability too low, revert the change
-                 swap(Is[itemNo].o[b], Is[itemNo].o[a]);
-            } else {
-                efficiency = new_eff;
-				unloadingCostCount = output.second;
+                if (DEBUG) {
+                    cout << "unloading Cost : " << output.second
+                            << " delEfficiency : " << (efficiency - new_eff) * 100
+                            << "  dist : " << (Is[a].pos - Is[b].pos) / 100
+                            << "  del_E : " << del_E
+                            << "  probability : " << probability << endl;
+                }
+
+                if (rand_val > probability) { // probability too low, revert the change
+                    swap(Is[b], Is[a]);
+                } else {
+                    efficiency = new_eff;
+                    unloadingCostCount = output.second;
+                }
             }
         }
     }
