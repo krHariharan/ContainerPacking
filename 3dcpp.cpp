@@ -170,7 +170,7 @@ Container threed_cpp(vector<Item> &items, int L, int B, int H, bool DEBUG=false)
         item_rot[5] = {I.sNo, I.locNo, I.l, I.b, I.h, {dim[2], dim[0], dim[1]}, true, I.stackable};
         
         for(int i=0; i<6; i++){
-            item_rot[i].pos = C.fit(item_rot[i].o[0], item_rot[i].o[1], item_rot[i].o[2], item_rot[i].stackable);
+            item_rot[i].pos = items[i].pos = C.fit(item_rot[i].o[0], item_rot[i].o[1], item_rot[i].o[2], item_rot[i].stackable);
             if (item_rot[i].pos.x >= 0) {
                 C.packed.push_back(item_rot[i]);
                 C.unloadingCost.push_back({-1.0, -1});
@@ -275,7 +275,7 @@ pair<double, double> packer(string filename) {
 
     auto start = chrono::steady_clock::now();
 
-    Container C = threed_cpp(Is, L, B, H, true);
+    Container C = threed_cpp(Is, L, B, H);
     pair<double, int> output = output_rep(C, true);
 	double efficiency = output.first;
 	int unloadingCostCount = output.second;
