@@ -61,6 +61,7 @@ class Container {
 public:
     int L, B, H;                             // dimensions of the container
     vector<Item> packed;
+    vector<pair<double, int>> unloadingCost;
     Container(int x, int y, int z) : L(x), B(y), H(z),
                                      v(x, vector<int>(y, 0)),
                                      minh(x, vector<int>(y, 0)) {
@@ -126,6 +127,31 @@ public:
 
         return loc;
     }
+
+    pair<double, int> cost(int i){
+        int count=0;
+        double currCost = 0.0;
+        if(unloadingCost[i].second!=-1)
+            return unloadingCost[i];
+        for(int j=packed.size() - 1; j>=0; j--){
+            if(i!=j && packed[i].is_blocked_by(packed[j]) && packed[i].locNo<packed[j].locNo){
+                if(packed[j].stackable)
+                    currCost+=2*(cost(j).first + (double)(packed[j].l*packed[j].b*packed[j].h)); 
+                else
+                    currCost+=0.5*(cost(j).first + (double)(packed[j].l*packed[j].b*packed[j].h));
+                count+=cost(j).second+1;
+                // if(debug){
+                //     if(C.packed[i].is_behind(C.packed[j]))
+                //         cout<<"behind ";
+                //     if(C.packed[i].is_below(C.packed[j]))
+                //         cout<<"below ";
+                //     printf("%d: (%d, %d, %d)->(%d, %d, %d) blocked by %d: (%d, %d, %d)->(%d, %d, %d)\n", C.packed[i].locNo, C.packed[i].pos.x, C.packed[i].pos.y, C.packed[i].pos.z, C.packed[i].pos.x+C.packed[i].o[0], C.packed[i].pos.y+C.packed[i].o[1], C.packed[i].pos.z+C.packed[i].o[2], C.packed[j].locNo, C.packed[j].pos.x, C.packed[j].pos.y, C.packed[j].pos.z, C.packed[j].pos.x+C.packed[j].o[0], C.packed[j].pos.y+C.packed[j].o[1], C.packed[j].pos.z+C.packed[j].o[2]);
+                // }
+            }
+        }
+        unloadingCost[i] = {currCost, count};
+        return {currCost, count};
+    }
 };
 
 Container threed_cpp(vector<Item> &items, int L, int B, int H, bool DEBUG=false) {
@@ -147,6 +173,7 @@ Container threed_cpp(vector<Item> &items, int L, int B, int H, bool DEBUG=false)
             item_rot[i].pos = C.fit(item_rot[i].o[0], item_rot[i].o[1], item_rot[i].o[2], item_rot[i].stackable);
             if (item_rot[i].pos.x >= 0) {
                 C.packed.push_back(item_rot[i]);
+                C.unloadingCost.push_back({-1.0, -1});
                 if(DEBUG)
                     cout<<"packing "<<item_rot[i].sNo<<" at "<<item_rot[i].pos<<endl;
                 break;
@@ -227,22 +254,10 @@ pair<double, int> output_rep(Container &C, bool debug=false) {
         // cout << "\tlocation : " << Is[i].pos->x << 'x' << Is[i].pos->y << 'x' << Is[i].pos->z;
         vol = (double)(C.packed[i].l * C.packed[i].b * C.packed[i].h);
         occ_vol += vol;
+        occ_vol -= C.cost(i).first;
+        count += C.cost(i).second;
         // } else {
         // cout << "\nItem " << i + 1 << "\tNot Packed";
-        for(int j=C.packed.size() - 1; j>=0; j--){
-            if(i!=j && C.packed[i].is_blocked_by(C.packed[j]) && C.packed[i].locNo<C.packed[j].locNo){
-                if(C.packed[j].stackable)
-                    occ_vol-=2*(double)(C.packed[j].l * C.packed[j].b * C.packed[j].h);
-                count++;
-                if(debug){
-                    if(C.packed[i].is_behind(C.packed[j]))
-                        cout<<"behind ";
-                    if(C.packed[i].is_below(C.packed[j]))
-                        cout<<"below ";
-                    printf("%d: (%d, %d, %d)->(%d, %d, %d) blocked by %d: (%d, %d, %d)->(%d, %d, %d)\n", C.packed[i].locNo, C.packed[i].pos.x, C.packed[i].pos.y, C.packed[i].pos.z, C.packed[i].pos.x+C.packed[i].o[0], C.packed[i].pos.y+C.packed[i].o[1], C.packed[i].pos.z+C.packed[i].o[2], C.packed[j].locNo, C.packed[j].pos.x, C.packed[j].pos.y, C.packed[j].pos.z, C.packed[j].pos.x+C.packed[j].o[0], C.packed[j].pos.y+C.packed[j].o[1], C.packed[j].pos.z+C.packed[j].o[2]);
-                }
-            }
-        }
     }
 
     return pair<double, int>({occ_vol / total_vol, count});
