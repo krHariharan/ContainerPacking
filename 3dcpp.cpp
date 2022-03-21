@@ -158,15 +158,13 @@ Container threed_cpp(vector<Item> &items, int L, int B, int H, bool DEBUG=false)
     for (int i = items.size() - 1; i >= 0; i--) {
         Item I = items[i];
 
-        vector<int> dim{I.l, I.b, I.h};
-        sort(dim.begin(), dim.end());
         vector<Item> item_rot(6); // rotations of the item
-        item_rot[0] = {I.sNo, I.locNo, I.l, I.b, I.h, {dim[0], dim[2], dim[1]}, true, I.stackable};
-        item_rot[1] = {I.sNo, I.locNo, I.l, I.b, I.h, {dim[1], dim[2], dim[0]}, true, I.stackable};
-        item_rot[2] = {I.sNo, I.locNo, I.l, I.b, I.h, {dim[0], dim[1], dim[2]}, true, I.stackable};
-        item_rot[3] = {I.sNo, I.locNo, I.l, I.b, I.h, {dim[1], dim[0], dim[2]}, true, I.stackable};
-        item_rot[4] = {I.sNo, I.locNo, I.l, I.b, I.h, {dim[2], dim[1], dim[0]}, true, I.stackable};
-        item_rot[5] = {I.sNo, I.locNo, I.l, I.b, I.h, {dim[2], dim[0], dim[1]}, true, I.stackable};
+        item_rot[0] = {I.sNo, I.locNo, I.l, I.b, I.h, {I.o[0], I.o[1], I.o[2]}, true, I.stackable};
+        item_rot[1] = {I.sNo, I.locNo, I.l, I.b, I.h, {I.o[0], I.o[2], I.o[1]}, true, I.stackable};
+        item_rot[2] = {I.sNo, I.locNo, I.l, I.b, I.h, {I.o[1], I.o[0], I.o[2]}, true, I.stackable};
+        item_rot[3] = {I.sNo, I.locNo, I.l, I.b, I.h, {I.o[1], I.o[2], I.o[0]}, true, I.stackable};
+        item_rot[4] = {I.sNo, I.locNo, I.l, I.b, I.h, {I.o[2], I.o[0], I.o[1]}, true, I.stackable};
+        item_rot[5] = {I.sNo, I.locNo, I.l, I.b, I.h, {I.o[2], I.o[1], I.o[0]}, true, I.stackable};
         
         for(int j=0; j<6; j++){
             item_rot[j].pos = items[i].pos = C.fit(item_rot[j].o[0], item_rot[j].o[1], item_rot[j].o[2], item_rot[j].stackable);
@@ -229,6 +227,7 @@ void read_csv(vector<Item> &Is, int &L, int &B, int &H, string filename) {
 				//cout<<I.stackable<<endl;
 			}
         }
+        sort(I.o, I.o+3);
         Is.push_back(I);
     }
     cout<<"Package count "<<Is.size()<<endl;
@@ -274,6 +273,7 @@ pair<double, double> packer(string filename) {
 		cout<<"Naive efficency : "<<efficiency*100<<"%\tunloading cost : "<<unloadingCostCount<<endl;
 	}
     for (double temp = TEMP_MAX; temp > TEMP_MIN; temp *= COOLING_RATE) {
+        cout<<temp<<endl;
         // Number of swaps evaluated at each temperature, hardcoded for now
         int swaps_per_temp = 20;
         for (int i = 0; i < swaps_per_temp; i++) {
