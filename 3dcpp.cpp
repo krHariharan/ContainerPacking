@@ -82,9 +82,9 @@ public:
 		// updating minh - the minimum height another consignment needs to be, to be packed behind current consignment without being blocked when unloading
 		for(int n=y; n<y+I.b1; n++){
 			for(int m=x-1; m>=0; m--){
-				if(v[m][n]>=v[x][n])
-					break;
-				minh[m][n] = v[x][n]-v[m][n];
+				// if(v[m][n]>=v[x][n])
+				// 	break;
+				minh[m][n] = max(v[x][n],minh[m][n]);
 			}
 		}
 
@@ -125,7 +125,7 @@ public:
 				continue;
 			for(int m=0; m<l; m++){				
 				for(int n=0; n<b; n++){
-					if(v[x+m][y+n]!=base || minh[x+m][y+n]>=h){
+					if(v[x+m][y+n]!=base || minh[x+m][y+n]>=base+h){
 						flag=0;	// flag position 0 if either consignemnt doesn't have the min height, or base is uneven at this area
 						break;
 					}
