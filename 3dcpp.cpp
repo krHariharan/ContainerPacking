@@ -18,6 +18,14 @@ Shree Vishnu
 
 using namespace std;
 
+const double TEMP_MAX = 1, TEMP_MIN = 0.1, COOLING_RATE = 0.80;
+
+bool DEBUG = false;
+
+random_device rd;
+seed_seq sd{rd(), rd(), rd(), rd()};
+mt19937 rng(rd());
+
 // Location struct
 typedef struct LocType {
 	int x, y, z;
@@ -34,6 +42,8 @@ enum orientation
 
 // Item struct
 typedef struct ItemType {
+	int sNo;
+	int locNo;
 	int l;
 	int b;
     int h;
@@ -171,7 +181,7 @@ public:
 
 
 // Given a partially packed container as input, fn packs remaining consignments using a purely greedy approach and returns the resultant volume optimization
-double greedy(Container C, vector<Item>& Items, int starting) {
+double greedy(Container C, vector<Item>& Items, int starting, bool annealing=false) {
 	//cout<<"3dcpp called\n";
 	//cout<<"Container created";
     for(int i=starting; i>=0; i--){
@@ -180,12 +190,12 @@ double greedy(Container C, vector<Item>& Items, int starting) {
 		sort(dim.begin(), dim.end());
     	vector<Item> Iarr(6);
 		// all possible orientations - ordered based on heuristic considering protrusion length and stability
-   		Iarr[0] = {I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, NULL};
-   		Iarr[1] = {I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, NULL};
-   		Iarr[2] = {I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, NULL};
-   		Iarr[3] = {I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, NULL};
-   		Iarr[4] = {I.l, I.b, I.h, dim[2], dim[1], dim[0], true, I.stackable, I.o, NULL};
-   		Iarr[5] = {I.l, I.b, I.h, dim[2], dim[0], dim[1], true, I.stackable, I.o, NULL};
+   		Iarr[0] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, NULL};
+   		Iarr[1] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, NULL};
+   		Iarr[2] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, NULL};
+   		Iarr[3] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, NULL};
+   		Iarr[4] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[1], dim[0], true, I.stackable, I.o, NULL};
+   		Iarr[5] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[0], dim[1], true, I.stackable, I.o, NULL};
 
    		for(int j=0; j<6; j++){
        		// if orientation i+1 is allowed for given package
@@ -194,6 +204,8 @@ double greedy(Container C, vector<Item>& Items, int starting) {
        		Iarr[j].pos = C.fit(Iarr[j].l1, Iarr[j].b1, Iarr[j].h1);
        		if(Iarr[j].pos!=NULL){
 				C.pack(Iarr[j]);
+				if(annealing)
+					Items[i] = Iarr[j];
 				break;
        		}
    		}
@@ -223,12 +235,12 @@ Container threedcpp(vector<Item>& Items, int L, int B, int H, int treeWidth=5) {
 		sort(dim.begin(), dim.end());
     	vector<Item> Iarr(6);
 		// all possible orientations - unlike the greedy fn, in decision tree fn, order is irrelevant
-   		Iarr[0] = {I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, NULL};
-   		Iarr[1] = {I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, NULL};
-   		Iarr[2] = {I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, NULL};
-   		Iarr[3] = {I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, NULL};
-   		Iarr[4] = {I.l, I.b, I.h, dim[2], dim[1], dim[0], true, I.stackable, I.o, NULL};
-   		Iarr[5] = {I.l, I.b, I.h, dim[2], dim[0], dim[1], true, I.stackable, I.o, NULL};
+   		Iarr[0] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, NULL};
+   		Iarr[1] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, NULL};
+   		Iarr[2] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, NULL};
+   		Iarr[3] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, NULL};
+   		Iarr[4] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[1], dim[0], true, I.stackable, I.o, NULL};
+   		Iarr[5] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[0], dim[1], true, I.stackable, I.o, NULL};
 
 		// updating decision tree options
 		for(int k=options.size()-1; k>=0; k--){
@@ -274,7 +286,7 @@ Container threedcpp(vector<Item>& Items, int L, int B, int H, int treeWidth=5) {
 	return options[0].second;
 }
 
-void readcsv(vector<Item>& Is, int& L, int& B, int& H, string fileName) {
+void readcsv(vector<Item>& Is, vector<int>& locBoundaries, int& L, int& B, int& H, string fileName) {
     ifstream file(fileName);
     string line;
 
@@ -284,11 +296,20 @@ void readcsv(vector<Item>& Is, int& L, int& B, int& H, string fileName) {
     containerinfo >> hashtag >> L >> B >> H;
     getline(file, line);
 
+	uniform_int_distribution<> new_loc(0, 25);
+	int sNo=0, locNo=0;
+
     while (getline(file, line)) {
         stringstream ss(line);
         string item;
 
         Item I;
+		I.sNo = sNo++;
+		I.locNo = locNo;
+		if(!new_loc(rng)){	
+			locNo++;
+			locBoundaries.push_back(sNo);
+		}
         I.packed = false;
 		I.pos = NULL;
         
@@ -319,9 +340,82 @@ void readcsv(vector<Item>& Is, int& L, int& B, int& H, string fileName) {
 				// cout<<I.o<<endl;
 			}
         }
+		I.pos=NULL;
         Is.push_back(I);
     }
+	locBoundaries.push_back(sNo);
 }
+
+void optimalItemList(vector<Item>& Is, vector<int>& locBoundaries, int L, int B, int H){
+	int prev=0;
+	for(auto b: locBoundaries){
+		if(prev>=b-1)
+			continue;
+		uniform_int_distribution<> int_dist(prev, b-1);
+		uniform_real_distribution<> float_dist(0, 1);
+		double efficiency = greedy(Container(L, B, H), Is, Is.size()-1, true);
+		 for (double temp = TEMP_MAX; temp > TEMP_MIN; temp *= COOLING_RATE) {
+			// Number of swaps evaluated at each temperature, hardcoded for now
+			int swaps_per_temp = 3;
+			for (int i = 0; i < swaps_per_temp; i++) {
+				int a = int_dist(rng), b = int_dist(rng);
+
+				while (b == a) {
+					b = int_dist(rng);
+				}
+
+				Item IsA = Is[a], IsB = Is[b];
+				swap(Is[a], Is[b]);
+
+				
+				double new_eff = greedy(Container(L, B, H), Is, Is.size()-1, true);
+
+				// change in energy between new and old state, i.e. cost function
+				// = (change in efficiency in %) + (euclidean distance b/w the items / 100)
+				double adist, bdist;
+				if(IsA.pos==NULL || Is[a].pos==NULL){
+					if(IsA.pos==NULL && Is[a].pos==NULL)
+						adist = 0;
+					else
+						adist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
+				}
+				else{
+					adist = sqrt(pow(IsA.pos->x - Is[a].pos->x, 2) + pow(IsA.pos->y - Is[a].pos->y, 2) + pow(IsA.pos->z - Is[a].pos->z, 2));;
+				}
+				
+				if(IsB.pos==NULL || Is[b].pos==NULL){
+					if(IsB.pos==NULL && Is[b].pos==NULL)
+						bdist=0;
+					else
+						bdist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
+				}
+				else
+					bdist = sqrt(pow(IsB.pos->x - Is[b].pos->x, 2) + pow(IsB.pos->y - Is[b].pos->y, 2) + pow(IsB.pos->z - Is[b].pos->z, 2));
+
+				double del_E = (efficiency - new_eff) * 100 - (adist + bdist) / sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
+
+				// probability = exp(-ΔE / T)
+				float probability = exp(-del_E / temp);
+				float rand_val = float_dist(rng);
+
+				if (DEBUG) {
+					cout	<< " delEfficiency : " << (efficiency - new_eff) * 100
+							<< "  dist : " << (adist + bdist) / 100
+							<< "  del_E : " << del_E
+							<< "  probability : " << probability << endl;
+				}
+
+				if (rand_val > probability) { // probability too low, revert the change
+					swap(Is[b], Is[a]);
+				} else {
+					efficiency = new_eff;
+				}
+			}
+		}
+		prev=b;
+	}
+}
+
 
 double outputRep(Container& C, int i){
 	double volOpt = C.volOpt();
@@ -332,10 +426,19 @@ double outputRep(Container& C, int i){
 double packer(string fileName, int i) {
     // receive input data and pass on to 3dcpp fn
     vector<Item> Is;
+	vector<int> locBoundaries;
     int L, B, H;
-    readcsv(Is, L, B, H, fileName);
+    readcsv(Is, locBoundaries, L, B, H, fileName);
+
+	auto start = chrono::steady_clock::now();
+
+	optimalItemList(Is, locBoundaries, L, B, H);
 	//cout<<"Input read\n";
 	Container C = threedcpp(Is, L, B, H);
+
+	chrono::duration<double> diff = chrono::steady_clock::now() - start;
+	cout << "Time : " << diff.count() << "s\n";
+
 	return outputRep(C, i);
 }
 
@@ -344,8 +447,8 @@ int main(int argc, char ** argv){
 	string baseFile(argv[1]);
 	baseFile += "_";
 	string fileType = ".csv";
-	for(int i=1; i<100; i++){
+	for(int i=1; i<=100; i++){
 		volOpt += packer(baseFile+string(to_string(i))+fileType, i);
+		cout<<"Average volume optimization: "<<volOpt/i<<endl;
 	}
-	cout<<"\nAverage volume optimization: "<<volOpt/99;
 }
