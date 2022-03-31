@@ -99,12 +99,15 @@ std::vector<int> read_txt(std::ifstream &data, Container &con, std::map<int, Con
 
 void write_csv(Container &con, std::map<int, ConsignmentInfo> &consignments, std::vector<int> &IDs, std::string filename) {
     std::ofstream table(filename);
+    int groupID=0;
+    int count=0;
     int unstackableCount=0;
     table << "# " << con.len << " " << con.wid << " " << con.hei << "\n";
-    table << "\"unique_consignment_id\",\"date_added\",\"delivery_deadline_date\",\"goods_type\",\"goods_quantity\",\"shipment_charges\",\"max_temperature\",\"min_temperature\",\"special_handling\",\"packaging_type\",\"length\",\"width\",\"height\",\"weight\",\"is_floor_only\",\"is_stackable\",\"stack_weight\",\"stack_restriction_type\",\"is_rotatable\",\"rotation_type\",\"color\",\"pickup_time_window_start\",\"pickup_time_window_end\",\"dropoff_time_window_start\",\"dropoff_time_window_end\",\"pickup_coordinate_id\",\"dropoff_coordinate_id\",\"pickup_address_id\",\"dropoff_address_id\",\"current_operator_id\",\"status\",\"pickup_timestamp\",\"delivered_timestamp\",\"box_description\"\n";
+    table << "\"unique_consignment_id\",\"date_added\",\"delivery_deadline_date\",\"goods_type\",\"goods_quantity\",\"shipment_charges\",\"max_temperature\",\"min_temperature\",\"special_handling\",\"packaging_type\",\"length\",\"width\",\"height\",\"weight\",\"is_floor_only\",\"is_stackable\",\"stack_weight\",\"stack_restriction_type\",\"is_rotatable\",\"rotation_type\",\"groupID\",\"color\",\"pickup_time_window_start\",\"pickup_time_window_end\",\"dropoff_time_window_start\",\"dropoff_time_window_end\",\"pickup_coordinate_id\",\"dropoff_coordinate_id\",\"pickup_address_id\",\"dropoff_address_id\",\"current_operator_id\",\"status\",\"pickup_timestamp\",\"delivered_timestamp\",\"box_description\"\n";
     srand(time(0));
     for (int id : IDs) {
-        double p = (double) rand() / (double) (RAND_MAX);          
+        count++;
+        int p = rand()%10;          
         table << "\"" << id << "\",\"";
         table << consignments[id].date_added << "\",\"";
         table << consignments[id].delivery_deadline_date << "\",\"";
@@ -120,7 +123,7 @@ void write_csv(Container &con, std::map<int, ConsignmentInfo> &consignments, std
         table << consignments[id].height << "\",\"";
         table << consignments[id].weight << "\",\"";
         table << consignments[id].is_floor_only << "\",\"";
-        if(p<=(double)0.8){
+        if(p){
             table << 1 << "\",\"";
         }  
         else{
@@ -131,7 +134,18 @@ void write_csv(Container &con, std::map<int, ConsignmentInfo> &consignments, std
         table << consignments[id].stack_weight << "\",\"";
         table << consignments[id].stack_restriction_type << "\",\"";
         table << consignments[id].is_rotatable << "\",\"";
-        table << consignments[id].rotation_type << "\",\"";
+        if(p){
+            table << "ROTATE_ANY" << "\",\"";
+        }  
+        else{
+            table << "ROTATE_HEIGHT_ONLY" << "\",\"";
+        }
+        if(rand()%20){
+            table << groupID << "\",\"";    
+        }
+        else{
+            table << groupID++ << "\",\"";    
+        }
         table << consignments[id].color << "\",\"";
         table << consignments[id].pickup_time_window_start << "\",\"";
         table << consignments[id].pickup_time_window_end << "\",\"";
@@ -147,7 +161,7 @@ void write_csv(Container &con, std::map<int, ConsignmentInfo> &consignments, std
         table << consignments[id].delivered_timestamp << "\",\"";
         table << consignments[id].box_description << "\"\n";
     }
-    cout<<unstackableCount<<endl;
+    cout<<unstackableCount<<'\t'<<count<<'\t'<<groupID<<endl;
 }
 
 int main() {

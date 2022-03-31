@@ -98,7 +98,7 @@ public:
 			}
 		}
 
-		// Updating remaining volume space of container if Item is not stackable
+		//Updating remaining volume space of container if Item is not stackable
 		if(!I.stackable){
 			for(int m=x; m<x+I.l1; m++)
 				for(int n=y; n<y+I.b1; n++)
@@ -190,12 +190,12 @@ double greedy(Container C, vector<Item>& Items, int starting, bool annealing=fal
 		sort(dim.begin(), dim.end());
     	vector<Item> Iarr(6);
 		// all possible orientations - ordered based on heuristic considering protrusion length and stability
-   		Iarr[0] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, NULL};
-   		Iarr[1] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, NULL};
-   		Iarr[2] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, NULL};
-   		Iarr[3] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, NULL};
-   		Iarr[4] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[1], dim[0], true, I.stackable, I.o, NULL};
-   		Iarr[5] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[0], dim[1], true, I.stackable, I.o, NULL};
+   		Iarr[0] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, NULL};
+   		Iarr[1] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, NULL};
+   		Iarr[2] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, NULL};
+   		Iarr[3] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, NULL};
+   		Iarr[4] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[0], dim[1], true, I.stackable, I.o, NULL};
+   		Iarr[5] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[1], dim[0], true, I.stackable, I.o, NULL};
 
    		for(int j=0; j<6; j++){
        		// if orientation i+1 is allowed for given package
@@ -235,10 +235,10 @@ Container threedcpp(vector<Item>& Items, int L, int B, int H, int treeWidth=5) {
 		sort(dim.begin(), dim.end());
     	vector<Item> Iarr(6);
 		// all possible orientations - unlike the greedy fn, in decision tree fn, order is irrelevant
-   		Iarr[0] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, NULL};
-   		Iarr[1] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, NULL};
-   		Iarr[2] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, NULL};
-   		Iarr[3] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, NULL};
+   		Iarr[0] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, NULL};
+   		Iarr[1] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, NULL};
+   		Iarr[2] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, NULL};
+   		Iarr[3] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, NULL};
    		Iarr[4] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[1], dim[0], true, I.stackable, I.o, NULL};
    		Iarr[5] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[0], dim[1], true, I.stackable, I.o, NULL};
 
@@ -296,20 +296,20 @@ void readcsv(vector<Item>& Is, vector<int>& locBoundaries, int& L, int& B, int& 
     containerinfo >> hashtag >> L >> B >> H;
     getline(file, line);
 
-	uniform_int_distribution<> new_loc(0, 25);
-	int sNo=0, locNo=0;
+	// uniform_int_distribution<> new_loc(0, 25);
+	int sNo=-1, locNo=0;
 
     while (getline(file, line)) {
         stringstream ss(line);
         string item;
 
         Item I;
-		I.sNo = sNo++;
+		I.sNo = ++sNo;
 		I.locNo = locNo;
-		if(!new_loc(rng)){	
-			locNo++;
-			locBoundaries.push_back(sNo);
-		}
+		// if(!new_loc(rng)){	
+		// 	locNo++;
+		// 	locBoundaries.push_back(sNo);
+		// }
         I.packed = false;
 		I.pos = NULL;
         
@@ -339,11 +339,59 @@ void readcsv(vector<Item>& Is, vector<int>& locBoundaries, int& L, int& B, int& 
 					I.o = Other;
 				// cout<<I.o<<endl;
 			}
+			else if(i==20){
+				I.locNo = stoi(item.substr(1, item.size()-2));
+				// if(I.locNo!=locNo){
+				// 	locBoundaries.push_back(sNo);
+				// 	locNo=I.locNo;
+				// }
+			}
         }
 		I.pos=NULL;
         Is.push_back(I);
     }
-	locBoundaries.push_back(sNo);
+	locBoundaries.push_back(++sNo);
+	cout<<locNo<<' '<<locBoundaries.size()<<endl;
+	for(auto b: locBoundaries){
+		cout<<b<<' ';
+	}
+	cout<<endl;
+}
+
+bool largerItem(Item& a, Item& b){
+	if(a.l*a.b*a.h==b.l*b.b*b.h){
+		priority_queue<int> aDim, bDim;
+		aDim.push(a.l);
+		aDim.push(a.b);
+		aDim.push(a.h);
+		bDim.push(b.l);
+		bDim.push(b.b);
+		bDim.push(b.h);
+		if(aDim.top()!=bDim.top())
+			return aDim.top()>bDim.top();
+		aDim.pop();
+		bDim.pop();
+		if(aDim.top()!=bDim.top())
+			return aDim.top()>bDim.top();
+		return !(a.stackable);	
+	}
+	return a.l*a.b*a.h > b.l*b.b*b.h;
+}
+
+void sortItems(vector<Item>& items, int start, int end){
+	if(start>=end)
+		return;
+	Item pivot = items[start];
+	int pivotPoint=end-1;
+	for(int i=end-1; i>start; i--){
+		if(!largerItem(items[i], pivot)){
+			swap(items[pivotPoint], items[i]);
+			pivotPoint--;
+		}
+	}
+	swap(items[pivotPoint], items[start]);
+	sortItems(items, start, pivotPoint-1);
+	sortItems(items, pivotPoint+1, end);
 }
 
 void optimalItemList(vector<Item>& Is, vector<int>& locBoundaries, int L, int B, int H){
@@ -351,6 +399,7 @@ void optimalItemList(vector<Item>& Is, vector<int>& locBoundaries, int L, int B,
 	for(auto b: locBoundaries){
 		if(prev>=b-1)
 			continue;
+		sortItems(Is, prev, b);
 		uniform_int_distribution<> int_dist(prev, b-1);
 		uniform_real_distribution<> float_dist(0, 1);
 		double efficiency = greedy(Container(L, B, H), Is, Is.size()-1, true);
@@ -392,7 +441,7 @@ void optimalItemList(vector<Item>& Is, vector<int>& locBoundaries, int L, int B,
 				else
 					bdist = sqrt(pow(IsB.pos->x - Is[b].pos->x, 2) + pow(IsB.pos->y - Is[b].pos->y, 2) + pow(IsB.pos->z - Is[b].pos->z, 2));
 
-				double del_E = (efficiency - new_eff) * 100 - (adist + bdist) / sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
+				double del_E = (efficiency - new_eff) * 100;// - (adist + bdist) / sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
 
 				// probability = exp(-ΔE / T)
 				float probability = exp(-del_E / temp);
