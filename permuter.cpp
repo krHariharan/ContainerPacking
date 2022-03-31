@@ -140,7 +140,7 @@ void write_csv(Container &con, std::map<int, ConsignmentInfo> &consignments, std
         else{
             table << "ROTATE_HEIGHT_ONLY" << "\",\"";
         }
-        if(rand()%20){
+        if(rand()%25){
             table << groupID << "\",\"";    
         }
         else{

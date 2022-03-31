@@ -18,7 +18,7 @@ Shree Vishnu
 
 using namespace std;
 
-const double TEMP_MAX = 1, TEMP_MIN = 0.1, COOLING_RATE = 0.80;
+const double TEMP_MAX = 1, TEMP_MIN = 0.1, COOLING_RATE = 0.90;
 
 bool DEBUG = false;
 
@@ -341,10 +341,10 @@ void readcsv(vector<Item>& Is, vector<int>& locBoundaries, int& L, int& B, int& 
 			}
 			else if(i==20){
 				I.locNo = stoi(item.substr(1, item.size()-2));
-				// if(I.locNo!=locNo){
-				// 	locBoundaries.push_back(sNo);
-				// 	locNo=I.locNo;
-				// }
+				if(I.locNo!=locNo){
+					locBoundaries.push_back(sNo);
+					locNo=I.locNo;
+				}
 			}
         }
 		I.pos=NULL;
