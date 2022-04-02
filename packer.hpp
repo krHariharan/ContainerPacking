@@ -67,6 +67,12 @@ struct Item {
 // Container struct
 struct Container {
     int L, B, H;                             // dimensions of container
+    int id;                                  // container id
+
+
+    std::vector<int> consignment_ids;        // consignments to be packed
+
+
     std::vector<std::vector<int>> v;         // height upto which each coordinate is filled
     std::vector<std::vector<int>> min_h;     // minimum height a consignment must be to be placed in a given coordinate, to prevent being blocked by consignment in front
     std::set<std::pair<int, int>> positions; // (x, y) of the left rear corner of every available cuboidal space, in lexicographical order

@@ -63,6 +63,27 @@ void threed_cpp(Container &cont, std::vector<Item> &items) {
     std::uniform_int_distribution<> int_dist(0, items.size() - 1);
     std::uniform_real_distribution<> float_dist(0, 1);
 
+
+
+    //ensure that items contains only those consignments which belong to that container
+    std::vector<Item> items_in_cont;
+    for (auto &item : items) {
+        //check if item.id is in cont.consignment_ids
+        if (std::find(cont.consignment_ids.begin(), cont.consignment_ids.end(), item.id) != cont.consignment_ids.end()) {
+            items_in_cont.push_back(item);
+        }
+    }
+
+    // if no items in container, return
+    if (items_in_cont.empty()) {
+        return;
+    }
+    
+    //use 'items' for 'items_in_cont'
+    items = items_in_cont;
+
+
+
     packer(cont, items);
     double efficiency = cont.vol_opt();
 
