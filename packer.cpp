@@ -17,6 +17,8 @@ Shree Vishnu
 
 #include <bits/stdc++.h>
 
+std::map<std::pair<double, double>, int> loc_nos;
+
 double invoker(std::vector<Container> conts, std::vector<Item> items);
 void read_txt(std::vector<Container> &conts, std::vector<Item> &items, std::string filename);
 void write_txt(std::vector<Item> &items, std::string in_filename, std::string out_filename);
@@ -49,7 +51,9 @@ void read_txt(std::vector<Container> &conts, std::vector<Item> &items, std::stri
     std::string line;
 
     bool in_vehicles_section = false;
+    bool in_vehicles_route_section = false;
     bool in_consignment_section = false;
+    bool in_vehicles_packing_section = false;
 
     while (getline(file, line)) {
         // check if line contains "Vehicles Section"
@@ -60,6 +64,15 @@ void read_txt(std::vector<Container> &conts, std::vector<Item> &items, std::stri
 
         if (line.find("Vehicles Route Section") != std::string::npos) {
             in_vehicles_section = false; // end of vehicles section
+            in_vehicles_route_section = true;
+            continue;
+        }
+
+        // check if line contains "Vehicles Packing Section"
+        if (line.find("Vehicles packing Section") != std::string::npos) {
+            in_vehicles_route_section = false;  // end of vehicles route section
+            in_vehicles_packing_section = true; // in_vehicles_section set to true if line contains "Vehicles Section"
+            continue;
         }
 
         // check if line contains "Consignment Section"
@@ -72,6 +85,10 @@ void read_txt(std::vector<Container> &conts, std::vector<Item> &items, std::stri
             in_consignment_section = false; // end of consignments section
         }
 
+        if (line.find("Consignments Section") != std::string::npos) {
+            in_vehicles_packing_section = false; // end of vehicles section
+        }
+
         if (in_vehicles_section) {
             std::stringstream ss(line);
 
@@ -82,6 +99,39 @@ void read_txt(std::vector<Container> &conts, std::vector<Item> &items, std::stri
             double l, b, h;
             ss >> l >> b >> h;
             conts.push_back(Container(l * 1000, b * 1000, h * 1000)); // casts to int
+        } else if (in_vehicles_route_section) {
+            std::stringstream ss(line);
+
+            std::string s1, s2;
+            int id, count;
+            std::vector<int> consignment_ids;
+
+            // push back consignment ids to conts
+            ss >> id;
+            ss >> count;
+            ss >> s1 >> s2;
+            ss >> s1 >> s2;
+            for (int j = 0; j < count; ++j) {
+                ss >> s1 >> s2;
+                loc_nos[{std::stof(s1.substr(2, s1.size() - 4)), std::stof(s2.substr(1, s1.size() - 4))}] = loc_nos.size();
+            }
+            ss >> s1 >> s2;
+
+            for (int j = 0; j < count; ++j) {
+                ss >> s1;
+                if (j == 0) {
+                    consignment_ids.push_back(std::stoi(s1.substr(1, s1.size() - 2)));
+                } else {
+                    consignment_ids.push_back(std::stoi(s1.substr(0, s1.size() - 1)));
+                }
+            }
+
+            // match id to container id and push consignment_ids back to container
+            for (int j = 0; j < conts.size(); ++j) {
+                if (conts[j].id == id) {
+                    conts[j].consignment_ids = consignment_ids;
+                }
+            }
         } else if (in_consignment_section) {
             std::stringstream ss(line);
             std::string temp;
@@ -149,8 +199,8 @@ void write_txt(std::vector<Item> &items, std::string in_filename, std::string ou
             out << items[id_counter].id << " ";
 
             if (items[id_counter].packed) {
-                out << "Packed" << items[id_counter].pos->x << " " << items[id_counter].pos->y
-                    << " " << items[id_counter].pos->z << "\n";
+                out << "Packed" << items[id_counter].pos.x << " " << items[id_counter].pos.y
+                    << " " << items[id_counter].pos.z << "\n";
             } else {
                 out << "Unpacked\n";
             }
@@ -164,18 +214,18 @@ void write_txt(std::vector<Item> &items, std::string in_filename, std::string ou
 }
 
 bool Item::is_below(const Item &item) const {
-    return pos->z + h <= item.pos->z &&                                // somewhere below,
-           (item.pos->x <= pos->x && pos->x <= item.pos->x + item.l || // stacked in
-            item.pos->x <= pos->x + l && pos->x + l <= item.pos->x + item.l) &&
-           (item.pos->y <= pos->y && pos->y <= item.pos->y + item.b || // the same column
-            item.pos->y <= pos->y + b && pos->y + b <= item.pos->y + item.b);
+    return pos.z + h <= item.pos.z &&                              // somewhere below,
+           (item.pos.x <= pos.x && pos.x <= item.pos.x + item.l || // stacked in
+            item.pos.x <= pos.x + l && pos.x + l <= item.pos.x + item.l) &&
+           (item.pos.y <= pos.y && pos.y <= item.pos.y + item.b || // the same column
+            item.pos.y <= pos.y + b && pos.y + b <= item.pos.y + item.b);
 }
 
 bool Item::is_behind(const Item &item) const {
-    return pos->x + l < item.pos->x &&                              // somewhere behind,
-           pos->z < item.pos->z + item.h &&                         // even slightly below,
-           (pos->y < item.pos->y && item.pos->y < pos->y + b ||     // overlapping
-            item.pos->y < pos->y && pos->y < item.pos->y + item.b); // in y direction
+    return pos.x + l < item.pos.x &&                            // somewhere behind,
+           pos.z < item.pos.z + item.h &&                       // even slightly below,
+           (pos.y < item.pos.y && item.pos.y < pos.y + b ||     // overlapping
+            item.pos.y < pos.y && pos.y < item.pos.y + item.b); // in y direction
 }
 
 bool Item::is_blocked_by(const Item &item) const {
@@ -194,8 +244,8 @@ Container::Container(int x, int y, int z) : L(x), B(y), H(z),
     positions.insert({0, 0});
 }
 
-Location *Container::fit(int l, int b, int h) {
-    Location *loc = new Location{-1, -1, -1};
+Location Container::fit(int l, int b, int h) {
+    Location loc;
     bool pos_valid;
 
     for (auto p : positions) {
@@ -224,39 +274,40 @@ Location *Container::fit(int l, int b, int h) {
         }
 
         if (pos_valid) { // position chosen
-            *loc = {x, y, base};
+            loc = {x, y, base};
             break;
         }
     }
-    if (loc->x < 0) {
-        return nullptr; // no suitable location found for consignment in given orientation
+
+    if (loc.x < 0) {
+        return Location(); // no suitable location found for consignment in given orientation
     }
 
     // update current height from (x, y) to (x + l, y + b)
-    for (int m = loc->x; m < loc->x + l; m++) {
-        for (int n = loc->y; n < loc->y + b; n++) {
+    for (int m = loc.x; m < loc.x + l; m++) {
+        for (int n = loc.y; n < loc.y + b; n++) {
             v[m][n] += h;
         }
     }
 
     // minh ensures that a future item does not hide behind an already placed item
-    for (int m = loc->x - 1; m >= 0; m--) {
-        for (int n = loc->y; n < loc->y + b; n++) {
-            if (v[m][n] >= v[loc->x][n]) {
+    for (int m = loc.x - 1; m >= 0; m--) {
+        for (int n = loc.y; n < loc.y + b; n++) {
+            if (v[m][n] >= v[loc.x][n]) {
                 break;
             }
 
-            min_h[m][n] = v[loc->x][n] - v[m][n];
+            min_h[m][n] = v[loc.x][n] - v[m][n];
         }
     }
 
     // additional possible positions
-    if (loc->x + l < L) {
-        positions.insert({loc->x + l, loc->y});
+    if (loc.x + l < L) {
+        positions.insert({loc.x + l, loc.y});
     }
 
-    if (loc->y + b < B) {
-        positions.insert({loc->x, loc->y + b});
+    if (loc.y + b < B) {
+        positions.insert({loc.x, loc.y + b});
     }
 
     return loc;
@@ -266,7 +317,7 @@ double Container::vol_opt() {
     double occ_vol = 0;
 
     for (auto &item : packed_items) {
-        occ_vol += ((double)item->l * item->b * item->h);
+        occ_vol += ((double)item.l * item.b * item.h);
     }
 
     return occ_vol / ((double)L * B * H);
@@ -300,7 +351,7 @@ int Container::item_count() {
 
 bool Container::check_valid() {
     for (auto &item : packed_items) {
-        if (item->o == HEIGHT && item->h != item->h1) {
+        if (item.o == HEIGHT && item.h != item.h1) {
             return false;
         }
     }

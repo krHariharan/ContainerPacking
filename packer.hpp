@@ -29,7 +29,7 @@ enum Orientation { // dimension along which item can be rotated
 
 // Location struct
 struct Location {
-    int x, y, z;
+    int x = -1, y = -1, z = -1;
 
     double operator-(const Location &other) const { // Euclidean distance
         return std::sqrt(std::pow(x - other.x, 2) +
@@ -49,7 +49,7 @@ struct Item {
     int l1, b1, h1;
     bool packed;
     bool stackable;
-    Location *pos;
+    Location pos;
     Orientation o;
 
     int id;
@@ -67,17 +67,19 @@ struct Item {
 // Container struct
 struct Container {
     int L, B, H;                             // dimensions of container
+    int id;                                  // container id
+    std::vector<int> consignment_ids;        // consignments to be packed
     std::vector<std::vector<int>> v;         // height upto which each coordinate is filled
     std::vector<std::vector<int>> min_h;     // minimum height a consignment must be to be placed in a given coordinate, to prevent being blocked by consignment in front
     std::set<std::pair<int, int>> positions; // (x, y) of the left rear corner of every available cuboidal space, in lexicographical order
-    std::vector<Item *> packed_items;        // details of packed items, in order of packing
+    std::vector<Item> packed_items;          // details of packed items, in order of packing
 
     // Constructor to create class objects, given properties [dimensions] of container
     Container(int x, int y, int z);
 
     // given the dimensions of the consignment, in order of orientation,
     // return the (x,y) coordinates at which the the consignment can be packed
-    Location *fit(int l, int b, int h);
+    Location fit(int l, int b, int h);
 
     double vol_opt();         // Returns volume optimization of current packing of container
     double output_rep(int i); // Same, but also with output text
