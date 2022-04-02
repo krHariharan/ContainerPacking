@@ -99,12 +99,12 @@ std::vector<int> read_txt(std::ifstream &data, Container &con, std::map<int, Con
 
 void write_csv(Container &con, std::map<int, ConsignmentInfo> &consignments, std::vector<int> &IDs, std::string filename) {
     std::ofstream table(filename);
+    int groupSize = IDs.size()/5;
     int groupID=0;
     int count=0;
     int unstackableCount=0;
     table << "# " << con.len << " " << con.wid << " " << con.hei << "\n";
     table << "\"unique_consignment_id\",\"date_added\",\"delivery_deadline_date\",\"goods_type\",\"goods_quantity\",\"shipment_charges\",\"max_temperature\",\"min_temperature\",\"special_handling\",\"packaging_type\",\"length\",\"width\",\"height\",\"weight\",\"is_floor_only\",\"is_stackable\",\"stack_weight\",\"stack_restriction_type\",\"is_rotatable\",\"rotation_type\",\"groupID\",\"color\",\"pickup_time_window_start\",\"pickup_time_window_end\",\"dropoff_time_window_start\",\"dropoff_time_window_end\",\"pickup_coordinate_id\",\"dropoff_coordinate_id\",\"pickup_address_id\",\"dropoff_address_id\",\"current_operator_id\",\"status\",\"pickup_timestamp\",\"delivered_timestamp\",\"box_description\"\n";
-    srand(time(0));
     for (int id : IDs) {
         count++;
         int p = rand()%10;          
@@ -140,7 +140,7 @@ void write_csv(Container &con, std::map<int, ConsignmentInfo> &consignments, std
         else{
             table << "ROTATE_HEIGHT_ONLY" << "\",\"";
         }
-        if(rand()%25){
+        if(rand()%groupSize){
             table << groupID << "\",\"";    
         }
         else{
@@ -165,6 +165,7 @@ void write_csv(Container &con, std::map<int, ConsignmentInfo> &consignments, std
 }
 
 int main() {
+    srand(time(0));
     std::cout << "Please enter the name of the input .txt file, without the extension:\n"
                  "Note: Subfolder of the same name must exist in the current directory."
               << std::endl;

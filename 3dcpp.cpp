@@ -53,7 +53,7 @@ typedef struct ItemType {
     bool packed;
 	bool stackable;
 	orientation o;
-	Location* pos;   	
+	Location pos={-1, -1, -1};   	
 } Item;
 
 // Container struct
@@ -79,10 +79,10 @@ public:
 
 	// given a consignment with it's assigned position, "pack" the consingment and update the colume space of container
 	void pack(Item I){
-		if(I.pos==NULL)
+		if(I.pos.x==-1)
 			return;
-		int x=I.pos->x;
-		int y=I.pos->y;
+		int x=I.pos.x;
+		int y=I.pos.y;
 
 		// Updating remaining volume space of container after consignment is packed
 		for(int m=x; m<x+I.l1; m++)
@@ -116,13 +116,13 @@ public:
 	}
 
 	// Given the dimensions of the consignment, in order of orientation, return the (x,y) coordinates at which the the consignment can be packed
-	Location* fit(int l, int b, int h){
+	Location fit(int l, int b, int h){
 		int flag = 0, x, y, base;
 
-		Location * loc = new Location;
-		loc->x = -1;
-		loc->y = -1;
-		loc->z = -1;
+		Location loc;
+		loc.x = -1;
+		loc.y = -1;
+		loc.z = -1;
 
 		for(auto p: positions){
 			x=p.first;
@@ -144,14 +144,12 @@ public:
 					break;	// position doesn't satisfy reqts - skipped
 			}
 			if(flag==1){	// position chosen
-				loc->x = x;
-				loc->y = y;
-				loc->z = base;
+				loc.x = x;
+				loc.y = y;
+				loc.z = base;
 				break;
 			}				
 		}
-		if(loc->x<0)
-			return NULL;	// no suitable location found for consignment in given orientation
 
 		return loc;
 	}
@@ -190,19 +188,19 @@ double greedy(Container C, vector<Item>& Items, int starting, bool annealing=fal
 		sort(dim.begin(), dim.end());
     	vector<Item> Iarr(6);
 		// all possible orientations - ordered based on heuristic considering protrusion length and stability
-   		Iarr[0] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, NULL};
-   		Iarr[1] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, NULL};
-   		Iarr[2] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, NULL};
-   		Iarr[3] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, NULL};
-   		Iarr[4] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[0], dim[1], true, I.stackable, I.o, NULL};
-   		Iarr[5] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[1], dim[0], true, I.stackable, I.o, NULL};
+   		Iarr[0] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, {-1, -1, -1}};
+   		Iarr[1] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, {-1, -1, -1}};
+   		Iarr[2] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, {-1, -1, -1}};
+   		Iarr[3] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, {-1, -1, -1}};
+   		Iarr[4] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[0], dim[1], true, I.stackable, I.o, {-1, -1, -1}};
+   		Iarr[5] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[1], dim[0], true, I.stackable, I.o, {-1, -1, -1}};
 
    		for(int j=0; j<6; j++){
        		// if orientation i+1 is allowed for given package
 			if((I.o==Height && Iarr[j].h!=Iarr[j].h1) || (I.o==Length && Iarr[j].l!=Iarr[j].l1) || (I.o==Width && Iarr[j].b!=Iarr[j].b1))
 					continue;
        		Iarr[j].pos = C.fit(Iarr[j].l1, Iarr[j].b1, Iarr[j].h1);
-       		if(Iarr[j].pos!=NULL){
+       		if(Iarr[j].pos.x!=-1){
 				C.pack(Iarr[j]);
 				if(annealing)
 					Items[i] = Iarr[j];
@@ -235,12 +233,12 @@ Container threedcpp(vector<Item>& Items, int L, int B, int H, int treeWidth=5) {
 		sort(dim.begin(), dim.end());
     	vector<Item> Iarr(6);
 		// all possible orientations - unlike the greedy fn, in decision tree fn, order is irrelevant
-   		Iarr[0] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, NULL};
-   		Iarr[1] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, NULL};
-   		Iarr[2] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, NULL};
-   		Iarr[3] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, NULL};
-   		Iarr[4] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[1], dim[0], true, I.stackable, I.o, NULL};
-   		Iarr[5] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[0], dim[1], true, I.stackable, I.o, NULL};
+   		Iarr[0] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, {-1, -1, -1}};
+   		Iarr[1] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, {-1, -1, -1}};
+   		Iarr[2] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, {-1, -1, -1}};
+   		Iarr[3] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, {-1, -1, -1}};
+   		Iarr[4] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[1], dim[0], true, I.stackable, I.o, {-1, -1, -1}};
+   		Iarr[5] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[0], dim[1], true, I.stackable, I.o, {-1, -1, -1}};
 
 		// updating decision tree options
 		for(int k=options.size()-1; k>=0; k--){
@@ -255,7 +253,7 @@ Container threedcpp(vector<Item>& Items, int L, int B, int H, int treeWidth=5) {
 					continue;
 				Iarr[j].pos = options[k].second.fit(Iarr[j].l1, Iarr[j].b1, Iarr[j].h1);
 				// if orientation i+1 is allowed for given consignment, pack into container and and keep this packing as an option
-				if(Iarr[j].pos!=NULL){
+				if(Iarr[j].pos.x!=-1){
 					C = options[k].second;
 					C.pack(Iarr[j]);
 					options.push_back({greedy(C, Items, i-1), C});
@@ -311,7 +309,7 @@ void readcsv(vector<Item>& Is, vector<int>& locBoundaries, int& L, int& B, int& 
 		// 	locBoundaries.push_back(sNo);
 		// }
         I.packed = false;
-		I.pos = NULL;
+		I.pos = {-1, -1, -1};
         
         for (int i = 0; getline(ss, item, ','); ++i) {
             if (i == 10) I.l = I.l1 = stoi(item.substr(1, item.size()-2));
@@ -347,7 +345,7 @@ void readcsv(vector<Item>& Is, vector<int>& locBoundaries, int& L, int& B, int& 
 				}
 			}
         }
-		I.pos=NULL;
+		I.pos={-1, -1, -1};
         Is.push_back(I);
     }
 	locBoundaries.push_back(++sNo);
@@ -384,7 +382,7 @@ void sortItems(vector<Item>& items, int start, int end){
 	Item pivot = items[start];
 	int pivotPoint=end-1;
 	for(int i=end-1; i>start; i--){
-		if(!largerItem(items[i], pivot)){
+		if(largerItem(items[i], pivot)){
 			swap(items[pivotPoint], items[i]);
 			pivotPoint--;
 		}
@@ -422,24 +420,24 @@ void optimalItemList(vector<Item>& Is, vector<int>& locBoundaries, int L, int B,
 				// change in energy between new and old state, i.e. cost function
 				// = (change in efficiency in %) + (euclidean distance b/w the items / 100)
 				double adist, bdist;
-				if(IsA.pos==NULL || Is[a].pos==NULL){
-					if(IsA.pos==NULL && Is[a].pos==NULL)
+				if(IsA.pos.x==-1 || Is[a].pos.x==-1){
+					if(IsA.pos.x==-1 && Is[a].pos.x==-1)
 						adist = 0;
 					else
 						adist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
 				}
 				else{
-					adist = sqrt(pow(IsA.pos->x - Is[a].pos->x, 2) + pow(IsA.pos->y - Is[a].pos->y, 2) + pow(IsA.pos->z - Is[a].pos->z, 2));;
+					adist = sqrt(pow(IsA.pos.x - Is[a].pos.x, 2) + pow(IsA.pos.y - Is[a].pos.y, 2) + pow(IsA.pos.z - Is[a].pos.z, 2));;
 				}
 				
-				if(IsB.pos==NULL || Is[b].pos==NULL){
-					if(IsB.pos==NULL && Is[b].pos==NULL)
+				if(IsB.pos.x==-1 || Is[b].pos.x==-1){
+					if(IsB.pos.x==-1 && Is[b].pos.x==-1)
 						bdist=0;
 					else
 						bdist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
 				}
 				else
-					bdist = sqrt(pow(IsB.pos->x - Is[b].pos->x, 2) + pow(IsB.pos->y - Is[b].pos->y, 2) + pow(IsB.pos->z - Is[b].pos->z, 2));
+					bdist = sqrt(pow(IsB.pos.x - Is[b].pos.x, 2) + pow(IsB.pos.y - Is[b].pos.y, 2) + pow(IsB.pos.z - Is[b].pos.z, 2));
 
 				double del_E = (efficiency - new_eff) * 100;// - (adist + bdist) / sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
 
