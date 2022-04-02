@@ -63,7 +63,25 @@ void threed_cpp(Container &cont, std::vector<Item> &items) {
     std::uniform_int_distribution<> int_dist(0, items.size() - 1);
     std::uniform_real_distribution<> float_dist(0, 1);
 
-    packer(cont, items);
+
+
+    //ensure that items contains only those consignments which belong to that container
+    std::vector<Item> items_in_cont;
+    for (auto &item : items) {
+        //check if item.id is in cont.consignment_ids
+        if (std::find(cont.consignment_ids.begin(), cont.consignment_ids.end(), item.id) != cont.consignment_ids.end()) {
+            items_in_cont.push_back(item);
+        }
+    }
+
+    // if no items in container, return
+    if (items_in_cont.empty()) {
+        return;
+    }
+
+
+
+    packer(cont, items_in_cont);
     double efficiency = cont.vol_opt();
 
     for (double temp = TEMP_MAX; temp > TEMP_MIN; temp *= COOLING_RATE) {
@@ -77,14 +95,14 @@ void threed_cpp(Container &cont, std::vector<Item> &items) {
             while (b == a) {
                 b = int_dist(rng);
             }
-            std::swap(items[a], items[b]);
+            std::swap(items_in_cont[a], items_in_cont[b]);
 
-            packer(cont, items);
+            packer(cont, items_in_cont);
             double new_eff = cont.vol_opt();
 
             // change in energy between new and old state, i.e. cost function
-            // = (change in efficiency in %) + (euclidean distance b/w the items / 100)
-            double del_E = (efficiency - new_eff) * 100 + (items[a].pos - items[b].pos) / 100;
+            // = (change in efficiency in %) + (euclidean distance b/w the items_in_cont / 100)
+            double del_E = (efficiency - new_eff) * 100 + (items_in_cont[a].pos - items_in_cont[b].pos) / 100;
 
             // probability = exp(-ΔE / T)
             float probability = exp(-del_E / temp);
@@ -92,13 +110,13 @@ void threed_cpp(Container &cont, std::vector<Item> &items) {
 
             if (DEBUG) {
                 std::cout << "delEfficiency : " << (efficiency - new_eff) * 100
-                          << "  dist : " << (items[a].pos - items[b].pos) / 100
+                          << "  dist : " << (items_in_cont[a].pos - items_in_cont[b].pos) / 100
                           << "  del_E : " << del_E
                           << "  probability : " << probability << std::endl;
             }
 
             if (rand_val > probability) { // probability too low, revert the change
-                std::swap(items[a], items[b]);
+                std::swap(items_in_cont[a], items_in_cont[b]);
             } else {
                 efficiency = new_eff;
             }

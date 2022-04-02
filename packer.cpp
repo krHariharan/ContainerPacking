@@ -50,6 +50,7 @@ void read_txt(std::vector<Container> &conts, std::vector<Item> &items, std::stri
 
     bool in_vehicles_section = false;
     bool in_consignment_section = false;
+    bool in_vehicles_packing_section = false;
 
     while (getline(file, line)) {
         // check if line contains "Vehicles Section"
@@ -72,6 +73,16 @@ void read_txt(std::vector<Container> &conts, std::vector<Item> &items, std::stri
             in_consignment_section = false; // end of consignments section
         }
 
+        //check if line contains "Vehicles Packing Section"
+        if (line.find("Vehicles Packing Section") != std::string::npos) {
+            in_vehicles_packing_section = true; // in_vehicles_section set to true if line contains "Vehicles Section"
+            continue;
+        }
+
+        if (line.find("Consignments Section") != std::string::npos) {
+            in_vehicles_packing_section = false; // end of vehicles section
+        }
+
         if (in_vehicles_section) {
             std::stringstream ss(line);
 
@@ -82,7 +93,37 @@ void read_txt(std::vector<Container> &conts, std::vector<Item> &items, std::stri
             double l, b, h;
             ss >> l >> b >> h;
             conts.push_back(Container(l * 1000, b * 1000, h * 1000)); // casts to int
-        } else if (in_consignment_section) {
+        } 
+
+
+
+        else if(in_vehicles_packing_section) {
+            std::stringstream ss(line);
+
+            std::string temp;
+            int id, count;
+            std::vector<int> consignment_ids;
+
+            //push back consignment ids to conts
+            ss >> id;
+            ss >> count;
+            for (int j = 0; j < count; ++j) {
+                ss >> temp;
+                consignment_ids.push_back(std::stoi(temp));
+            }
+            //match id to container id and push consignment_ids back to container
+            for (int j = 0; j < conts.size(); ++j) {
+                if (conts[j].id == id) {
+                    conts[j].consignment_ids = consignment_ids;
+                }
+            }
+
+
+        }
+
+        
+        
+        else if (in_consignment_section) {
             std::stringstream ss(line);
             std::string temp;
             Item item;
