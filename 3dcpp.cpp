@@ -1,4 +1,3 @@
-
 /************************
 
 Container Packing with Multi Drop Constraint
@@ -296,11 +295,10 @@ void readcsv(vector<Item>& Is, vector<int>& locBoundaries, int& L, int& B, int& 
 
 	// uniform_int_distribution<> new_loc(0, 25);
 	int sNo=-1, locNo=0;
-
+	locBoundaries.insert(locBoundaries.begin(), 0);
     while (getline(file, line)) {
         stringstream ss(line);
         string item;
-
         Item I;
 		I.sNo = ++sNo;
 		I.locNo = locNo;
@@ -340,7 +338,7 @@ void readcsv(vector<Item>& Is, vector<int>& locBoundaries, int& L, int& B, int& 
 			else if(i==20){
 				I.locNo = stoi(item.substr(1, item.size()-2));
 				if(I.locNo!=locNo){
-					locBoundaries.push_back(sNo);
+					locBoundaries.insert(locBoundaries.begin(), sNo);
 					locNo=I.locNo;
 				}
 			}
@@ -348,7 +346,7 @@ void readcsv(vector<Item>& Is, vector<int>& locBoundaries, int& L, int& B, int& 
 		I.pos={-1, -1, -1};
         Is.push_back(I);
     }
-	locBoundaries.push_back(++sNo);
+	// locBoundaries.push_back(++sNo);
 	cout<<locNo<<' '<<locBoundaries.size()<<endl;
 	for(auto b: locBoundaries){
 		cout<<b<<' ';
@@ -393,12 +391,16 @@ void sortItems(vector<Item>& items, int start, int end){
 }
 
 void optimalItemList(vector<Item>& Is, vector<int>& locBoundaries, int L, int B, int H){
-	int prev=0;
+	int top=Is.size();
 	for(auto b: locBoundaries){
-		if(prev>=b-1)
+		sortItems(Is, b, top);
+		top = b;
+	}
+	top = Is.size();
+	for(auto b: locBoundaries){
+		if(b>=top-1)
 			continue;
-		sortItems(Is, prev, b);
-		uniform_int_distribution<> int_dist(prev, b-1);
+		uniform_int_distribution<> int_dist(b, top-1);
 		uniform_real_distribution<> float_dist(0, 1);
 		double efficiency = greedy(Container(L, B, H), Is, Is.size()-1, true);
 		 for (double temp = TEMP_MAX; temp > TEMP_MIN; temp *= COOLING_RATE) {
@@ -459,7 +461,7 @@ void optimalItemList(vector<Item>& Is, vector<int>& locBoundaries, int L, int B,
 				}
 			}
 		}
-		prev=b;
+		top=b;
 	}
 }
 
