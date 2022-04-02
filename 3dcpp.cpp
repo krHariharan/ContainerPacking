@@ -232,8 +232,8 @@ double greedy(Container C, vector<Item>& Items, int starting, bool annealing=fal
        		Iarr[j].pos = C.fit(Iarr[j].l1, Iarr[j].b1, Iarr[j].h1);
        		if(Iarr[j].pos.x!=-1){
 				C.pack(Iarr[j]);
-				if(annealing)
-					Items[i] = Iarr[j];
+				// if(annealing)
+				// 	Items[i] = Iarr[j];
 				break;
        		}
    		}
