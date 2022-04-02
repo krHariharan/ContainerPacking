@@ -1,4 +1,3 @@
-
 /************************
 
 Container Packing with Multi Drop Constraint
@@ -177,6 +176,10 @@ public:
 				return false;
 		return true;
 	}
+
+	Location* fitAt(int, int, int, pair<int, int>);
+	
+	vector<Item> bestFit(vector<Item>&, vector<int>);
 };
 
 
@@ -185,6 +188,8 @@ double greedy(Container C, vector<Item>& Items, int starting, bool annealing=fal
 	//cout<<"3dcpp called\n";
 	//cout<<"Container created";
     for(int i=starting; i>=0; i--){
+		int min=-1;
+		pair<int, int> minPos={0,0};
     	Item I = Items[i];
 		vector<int> dim{I.l, I.b, I.h};
 		sort(dim.begin(), dim.end());
@@ -203,12 +208,18 @@ double greedy(Container C, vector<Item>& Items, int starting, bool annealing=fal
 					continue;
        		Iarr[j].pos = C.fit(Iarr[j].l1, Iarr[j].b1, Iarr[j].h1);
        		if(Iarr[j].pos!=NULL){
-				C.pack(Iarr[j]);
-				if(annealing)
-					Items[i] = Iarr[j];
-				break;
+				if(min==-1 || (pair<int, int>){Iarr[j].pos->x, Iarr[j].pos->y}<minPos){
+					min = j;
+					minPos = {Iarr[j].pos->x, Iarr[j].pos->y};
+				}
+				
        		}
    		}
+		if(min!=-1){
+			C.pack(Iarr[min]);
+			if(annealing)
+				Items[i] = Iarr[min];
+		}
    	}
 	return C.volOpt();
 }
@@ -350,7 +361,7 @@ void readcsv(vector<Item>& Is, vector<int>& locBoundaries, int& L, int& B, int& 
 		I.pos=NULL;
         Is.push_back(I);
     }
-	locBoundaries.push_back(++sNo);
+	reverse(locBoundaries.begin(), locBoundaries.end());
 	cout<<locNo<<' '<<locBoundaries.size()<<endl;
 	for(auto b: locBoundaries){
 		cout<<b<<' ';
@@ -384,7 +395,7 @@ void sortItems(vector<Item>& items, int start, int end){
 	Item pivot = items[start];
 	int pivotPoint=end-1;
 	for(int i=end-1; i>start; i--){
-		if(!largerItem(items[i], pivot)){
+		if(largerItem(items[i], pivot)){
 			swap(items[pivotPoint], items[i]);
 			pivotPoint--;
 		}
@@ -394,75 +405,149 @@ void sortItems(vector<Item>& items, int start, int end){
 	sortItems(items, pivotPoint+1, end);
 }
 
-void optimalItemList(vector<Item>& Is, vector<int>& locBoundaries, int L, int B, int H){
-	int prev=0;
-	for(auto b: locBoundaries){
-		if(prev>=b-1)
-			continue;
-		sortItems(Is, prev, b);
-		uniform_int_distribution<> int_dist(prev, b-1);
-		uniform_real_distribution<> float_dist(0, 1);
-		double efficiency = greedy(Container(L, B, H), Is, Is.size()-1, true);
-		 for (double temp = TEMP_MAX; temp > TEMP_MIN; temp *= COOLING_RATE) {
-			// Number of swaps evaluated at each temperature, hardcoded for now
-			int swaps_per_temp = 3;
-			for (int i = 0; i < swaps_per_temp; i++) {
-				int a = int_dist(rng), b = int_dist(rng);
+Location* Container::fitAt(int l, int b, int h, pair<int, int> p){
+	int x=p.first;
+	int y=p.second;
+	int base = v[x][y];
+	if(base+h>H)	
+		return NULL;	// height of consignment, if packed at (x,y), exceeds the height of the container
+	if(x+l>L || y+b>B)
+		return NULL;
+	for(int m=0; m<l; m++){				
+		for(int n=0; n<b; n++){
+			if(v[x+m][y+n]!=base || minh[x+m][y+n]>=base+h){
+				return NULL;
+			}
+		}
+	}
+	Location * loc = new Location;
+	loc->x = x;
+	loc->y = y;
+	loc->z = base;
+	return loc;
 
-				while (b == a) {
-					b = int_dist(rng);
-				}
+}
 
-				Item IsA = Is[a], IsB = Is[b];
-				swap(Is[a], Is[b]);
-
-				
-				double new_eff = greedy(Container(L, B, H), Is, Is.size()-1, true);
-
-				// change in energy between new and old state, i.e. cost function
-				// = (change in efficiency in %) + (euclidean distance b/w the items / 100)
-				double adist, bdist;
-				if(IsA.pos==NULL || Is[a].pos==NULL){
-					if(IsA.pos==NULL && Is[a].pos==NULL)
-						adist = 0;
-					else
-						adist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
-				}
-				else{
-					adist = sqrt(pow(IsA.pos->x - Is[a].pos->x, 2) + pow(IsA.pos->y - Is[a].pos->y, 2) + pow(IsA.pos->z - Is[a].pos->z, 2));;
-				}
-				
-				if(IsB.pos==NULL || Is[b].pos==NULL){
-					if(IsB.pos==NULL && Is[b].pos==NULL)
-						bdist=0;
-					else
-						bdist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
-				}
-				else
-					bdist = sqrt(pow(IsB.pos->x - Is[b].pos->x, 2) + pow(IsB.pos->y - Is[b].pos->y, 2) + pow(IsB.pos->z - Is[b].pos->z, 2));
-
-				double del_E = (efficiency - new_eff) * 100;// - (adist + bdist) / sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
-
-				// probability = exp(-ΔE / T)
-				float probability = exp(-del_E / temp);
-				float rand_val = float_dist(rng);
-
-				if (DEBUG) {
-					cout	<< " delEfficiency : " << (efficiency - new_eff) * 100
-							<< "  dist : " << (adist + bdist) / 100
-							<< "  del_E : " << del_E
-							<< "  probability : " << probability << endl;
-				}
-
-				if (rand_val > probability) { // probability too low, revert the change
-					swap(Is[b], Is[a]);
-				} else {
-					efficiency = new_eff;
+vector<Item> Container::bestFit(vector<Item>& Is, vector<int> locBoundaries){
+	int top = Is.size(), size = Is.size();
+	vector<Item> result(0);
+	for(int b: locBoundaries){
+		for(auto p: positions){
+			for(int i=top-1; i>=b; i--){
+				if(Is[i].packed)
+					continue;
+				Item I = Is[i];
+				vector<int> dim{I.l, I.b, I.h};
+				sort(dim.begin(), dim.end());
+				vector<Item> Iarr(6);
+				// all possible orientations - ordered based on heuristic considering protrusion length and stability
+				Iarr[0] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[1], dim[2], true, I.stackable, I.o, NULL};
+				Iarr[1] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[0], dim[2], dim[1], true, I.stackable, I.o, NULL};
+				Iarr[2] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[0], dim[2], true, I.stackable, I.o, NULL};
+				Iarr[3] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[1], dim[2], dim[0], true, I.stackable, I.o, NULL};
+				Iarr[4] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[0], dim[1], true, I.stackable, I.o, NULL};
+				Iarr[5] = {I.sNo, I.locNo, I.l, I.b, I.h, dim[2], dim[1], dim[0], true, I.stackable, I.o, NULL};
+				for(int j=0; j<6; j++){
+					if(I.o==Height && Iarr[j].h!=Iarr[j].h1)
+						continue;
+					Iarr[j].pos = fitAt(Iarr[j].l1, Iarr[j].b1, Iarr[j].h1, p);
+					if(Iarr[j].pos!=NULL){
+						pack(Iarr[j]);
+						//cout<<Is[i].sNo<<' '<<Is[i].locNo<<' '<<Is[i].l<<' '<<Is[i].b<<' '<<Is[i].h<<' '<<Iarr[j].pos->x<<' '<<Iarr[j].pos->y<<' '<<Iarr[j].pos->z<<endl;
+						result.push_back(Is[i]);
+						Is[i].packed = true;
+						break;
+					}
 				}
 			}
 		}
-		prev=b;
+		for(int i=top-1; i>=b; i--){
+			if(!Is[i].packed){
+				//cout<<Is[i].sNo<<' '<<Is[i].locNo<<' '<<Is[i].l<<' '<<Is[i].b<<' '<<Is[i].h<<endl;
+				result.push_back(Is[i]);
+			}
+		}
+		top=b;
 	}
+	//cout<<"Result size "<<result.size()<<endl;
+	reverse(result.begin(), result.end());
+	return result;
+}
+
+void optimalItemList(vector<Item>& Is, vector<int>& locBoundaries, int L, int B, int H){
+	int top=Is.size();
+	for(auto b: locBoundaries){
+		sortItems(Is, b, top);
+		top=b;
+	}
+	vector<Item> temp = Container(L,B,H).bestFit(Is, locBoundaries);
+	Is = temp;
+	// for(auto b: locBoundaries){
+	// 	if(prev>=b-1)
+	// 		continue;
+	// 	uniform_int_distribution<> int_dist(prev, b-1);
+	// 	uniform_real_distribution<> float_dist(0, 1);
+	// 	double efficiency = greedy(Container(L, B, H), Is, Is.size()-1, true);
+	// 	 for (double temp = TEMP_MAX; temp > TEMP_MIN; temp *= COOLING_RATE) {
+	// 		// Number of swaps evaluated at each temperature, hardcoded for now
+	// 		int swaps_per_temp = 3;
+	// 		for (int i = 0; i < swaps_per_temp; i++) {
+	// 			int a = int_dist(rng), b = int_dist(rng);
+
+	// 			while (b == a) {
+	// 				b = int_dist(rng);
+	// 			}
+
+	// 			Item IsA = Is[a], IsB = Is[b];
+	// 			swap(Is[a], Is[b]);
+
+				
+	// 			double new_eff = greedy(Container(L, B, H), Is, Is.size()-1, true);
+
+	// 			// change in energy between new and old state, i.e. cost function
+	// 			// = (change in efficiency in %) + (euclidean distance b/w the items / 100)
+	// 			double adist, bdist;
+	// 			if(IsA.pos==NULL || Is[a].pos==NULL){
+	// 				if(IsA.pos==NULL && Is[a].pos==NULL)
+	// 					adist = 0;
+	// 				else
+	// 					adist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
+	// 			}
+	// 			else{
+	// 				adist = sqrt(pow(IsA.pos->x - Is[a].pos->x, 2) + pow(IsA.pos->y - Is[a].pos->y, 2) + pow(IsA.pos->z - Is[a].pos->z, 2));;
+	// 			}
+				
+	// 			if(IsB.pos==NULL || Is[b].pos==NULL){
+	// 				if(IsB.pos==NULL && Is[b].pos==NULL)
+	// 					bdist=0;
+	// 				else
+	// 					bdist = sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
+	// 			}
+	// 			else
+	// 				bdist = sqrt(pow(IsB.pos->x - Is[b].pos->x, 2) + pow(IsB.pos->y - Is[b].pos->y, 2) + pow(IsB.pos->z - Is[b].pos->z, 2));
+
+	// 			double del_E = (efficiency - new_eff) * 100;// - (adist + bdist) / sqrt(pow(L, 2) + pow(B, 2) + pow(H, 2));
+
+	// 			// probability = exp(-ΔE / T)
+	// 			float probability = exp(-del_E / temp);
+	// 			float rand_val = float_dist(rng);
+
+	// 			if (DEBUG) {
+	// 				cout	<< " delEfficiency : " << (efficiency - new_eff) * 100
+	// 						<< "  dist : " << (adist + bdist) / 100
+	// 						<< "  del_E : " << del_E
+	// 						<< "  probability : " << probability << endl;
+	// 			}
+
+	// 			if (rand_val > probability) { // probability too low, revert the change
+	// 				swap(Is[b], Is[a]);
+	// 			} else {
+	// 				efficiency = new_eff;
+	// 			}
+	// 		}
+	// 	}
+	// 	prev=b;
+	// }
 }
 
 
@@ -475,7 +560,7 @@ double outputRep(Container& C, int i){
 double packer(string fileName, int i) {
     // receive input data and pass on to 3dcpp fn
     vector<Item> Is;
-	vector<int> locBoundaries;
+	vector<int> locBoundaries ={0};
     int L, B, H;
     readcsv(Is, locBoundaries, L, B, H, fileName);
 
