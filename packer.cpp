@@ -21,7 +21,7 @@ std::map<std::pair<double, double>, int> loc_nos;
 
 double invoker(std::vector<Container> conts, std::vector<Item> items);
 void read_txt(std::vector<Container> &conts, std::vector<Item> &items, std::string filename);
-void write_txt(std::vector<Item> &items, std::string in_filename, std::string out_filename);
+void write_txt(std::vector<Container> &conts, std::vector<Item> &items, std::string in_filename, std::string out_filename);
 
 int main(int argc, char **argv) {
     // receive input data and pass on
@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
     double avg = invoker(conts, items);
     std::cout << "\nAverage volume optimization: " << avg << "\n";
 
-    write_txt(items, argv[1], argv[2]);
+    write_txt(conts, items, argv[1], argv[2]);
 }
 
 // invokes the main algorithm function- threed_cpp() for each container
@@ -113,7 +113,10 @@ void read_txt(std::vector<Container> &conts, std::vector<Item> &items, std::stri
             ss >> s1 >> s2;
             for (int j = 0; j < count; ++j) {
                 ss >> s1 >> s2;
-                loc_nos[{std::stof(s1.substr(2, s1.size() - 4)), std::stof(s2.substr(1, s1.size() - 4))}] = loc_nos.size();
+                std::pair<double, double> loc{std::stof(s1.substr(2, s1.size() - 4)), std::stof(s2.substr(1, s1.size() - 4))};
+                if (loc_nos.find(loc) == loc_nos.end()) {
+                    loc_nos[loc] = loc_nos.size();
+                }
             }
             ss >> s1 >> s2;
 
@@ -162,13 +165,12 @@ void read_txt(std::vector<Container> &conts, std::vector<Item> &items, std::stri
     file.close();
 }
 
-void write_txt(std::vector<Item> &items, std::string in_filename, std::string out_filename) {
+void write_txt(std::vector<Container> &conts, std::vector<Item> &items, std::string in_filename, std::string out_filename) {
     std::ifstream file(in_filename);
     std::ofstream out(out_filename);
     std::string line;
 
     bool in_consignment_section = false, in_packing_section = false;
-    int id_counter = 0;
 
     while (std::getline(file, line)) {
         if (line.find("Consignments Section") != std::string::npos) {
@@ -196,13 +198,20 @@ void write_txt(std::vector<Item> &items, std::string in_filename, std::string ou
 
             out << id << " Allocated " << temp << "\n";
         } else if (in_packing_section) {
-            out << items[id_counter].id << " ";
+            std::map<int, bool> id_is_packed;
 
-            if (items[id_counter].packed) {
-                out << "Packed" << items[id_counter].pos.x << " " << items[id_counter].pos.y
-                    << " " << items[id_counter].pos.z << "\n";
-            } else {
-                out << "Unpacked\n";
+            for (auto &cont : conts) {
+                for (auto &item : cont.packed_items) {
+                    out << item.id << " Packed " << item.pos.x << " " << item.pos.y
+                        << " " << item.pos.z << "\n";
+                    id_is_packed[item.id] = true;
+                }
+            }
+
+            for (auto &item : items) {
+                if (!id_is_packed[item.id]) {
+                    out << item.id << " Unpacked\n";
+                }
             }
         } else {
             out << line << "\n";
