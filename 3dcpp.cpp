@@ -78,13 +78,10 @@ void threed_cpp(Container &cont, std::vector<Item> &items) {
     if (items_in_cont.empty()) {
         return;
     }
-    
-    //use 'items' for 'items_in_cont'
-    items = items_in_cont;
 
 
 
-    packer(cont, items);
+    packer(cont, items_in_cont);
     double efficiency = cont.vol_opt();
 
     for (double temp = TEMP_MAX; temp > TEMP_MIN; temp *= COOLING_RATE) {
@@ -98,14 +95,14 @@ void threed_cpp(Container &cont, std::vector<Item> &items) {
             while (b == a) {
                 b = int_dist(rng);
             }
-            std::swap(items[a], items[b]);
+            std::swap(items_in_cont[a], items_in_cont[b]);
 
-            packer(cont, items);
+            packer(cont, items_in_cont);
             double new_eff = cont.vol_opt();
 
             // change in energy between new and old state, i.e. cost function
-            // = (change in efficiency in %) + (euclidean distance b/w the items / 100)
-            double del_E = (efficiency - new_eff) * 100 + (items[a].pos - items[b].pos) / 100;
+            // = (change in efficiency in %) + (euclidean distance b/w the items_in_cont / 100)
+            double del_E = (efficiency - new_eff) * 100 + (items_in_cont[a].pos - items_in_cont[b].pos) / 100;
 
             // probability = exp(-ΔE / T)
             float probability = exp(-del_E / temp);
@@ -113,13 +110,13 @@ void threed_cpp(Container &cont, std::vector<Item> &items) {
 
             if (DEBUG) {
                 std::cout << "delEfficiency : " << (efficiency - new_eff) * 100
-                          << "  dist : " << (items[a].pos - items[b].pos) / 100
+                          << "  dist : " << (items_in_cont[a].pos - items_in_cont[b].pos) / 100
                           << "  del_E : " << del_E
                           << "  probability : " << probability << std::endl;
             }
 
             if (rand_val > probability) { // probability too low, revert the change
-                std::swap(items[a], items[b]);
+                std::swap(items_in_cont[a], items_in_cont[b]);
             } else {
                 efficiency = new_eff;
             }
