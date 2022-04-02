@@ -182,22 +182,23 @@ public:
 		file_out<<"\"volume optimization\":"<<volOpt()*100<<","<<endl;
 		file_out<<"\"EBFT_best_orientation\": 1,\n\"EBFT_best_relative_iteration\": 1,"<<endl;
 		file_out<<"\"data\" : ["<<endl;
-		for(int i=0;i<packedItems.size();i++)
+		for(int i=packedItems.size()-1;i>=0;i--)
 		{
-			file_out<<"\"id\":"<<packedItems[i].sNo<<","<<endl;
-			file_out<<"\"length\":"<<packedItems[i].l1<<","<<endl;
-			file_out<<"\"width\":"<<packedItems[i].b1<<","<<endl;
+			file_out<<"{"<<endl;
+			file_out<<"\"id\":"<<packedItems[i].sNo<<","<<' ';
+			file_out<<"\"length\":"<<packedItems[i].l1<<","<<' ';
+			file_out<<"\"width\":"<<packedItems[i].b1<<","<<' ';
 			file_out<<"\"height\":"<<packedItems[i].h1<<","<<endl;
-			file_out<<"\"x\":"<<packedItems[i].pos.x<<","<<endl;
-			file_out<<"\"y\":"<<packedItems[i].pos.y<<","<<endl;
+			file_out<<"\"x\":"<<packedItems[i].pos.x<<","<<' ';
+			file_out<<"\"y\":"<<packedItems[i].pos.y<<","<<' ';
 			file_out<<"\"z\":"<<packedItems[i].pos.z<<","<<endl;
-			file_out<<"\"colour\":"<<"\""<<colour[i%9]<<"\""<<","<<endl;
-			file_out<<"\"wall\":"<<(i%4)+1<<","<<endl;
-			file_out<<"\"row\":"<<(i/8)+1<<","<<endl;
-			file_out<<"\"column\":"<<(i/4)+1<<","<<endl;
+			file_out<<"\"colour\":"<<"\""<<colour[i%9]<<"\""<<","<<' ';
+			file_out<<"\"wall\":"<<(i%4)+1<<","<<' ';
+			file_out<<"\"row\":"<<(i/8)+1<<","<<' ';
+			file_out<<"\"column\":"<<(i/4)+1<<","<<' ';
 			file_out<<"\"priority\":"<<"1"<<endl;
 			file_out<<"}";
-			if(i==packedItems.size()-1)
+			if(i==0)
 			{
 				continue;
 			}
