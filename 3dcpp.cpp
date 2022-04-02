@@ -168,11 +168,42 @@ public:
 		return packedItems.size();
 	}
 
-	bool checkValid(){
-		for(auto I: packedItems)
-			if(I.o==Height && I.h!=I.h1)
-				return false;
-		return true;
+	void convert(int id)
+	{
+		string colour[]={"Violet","Indigo","Blue","Green","Yellow","Orange","Red","MidnightBlue","Brown",",Crimson"};
+		string filename ="Container_"+to_string(id)+".txt";
+		ofstream file_out;
+		file_out.open(filename, std::ios_base::app);
+		file_out<<"{ \n";
+		file_out<<"\"container_id\":"<<id<<","<<endl;
+		file_out<<"\"container_length\":"<<L<<","<<endl;
+		file_out<<"\"container_width\":"<<B<<","<<endl;
+		file_out<<"\"container_height\":"<<H<<","<<endl;
+		file_out<<"\"volume optimization\":"<<volOpt()*100<<","<<endl;
+		file_out<<"\"EBFT_best_orientation\": 1,\n\"EBFT_best_relative_iteration\": 1,"<<endl;
+		file_out<<"\"data\" : ["<<endl;
+		for(int i=0;i<packedItems.size();i++)
+		{
+			file_out<<"\"id\":"<<packedItems[i].sNo<<","<<endl;
+			file_out<<"\"length\":"<<packedItems[i].l1<<","<<endl;
+			file_out<<"\"width\":"<<packedItems[i].b1<<","<<endl;
+			file_out<<"\"height\":"<<packedItems[i].h1<<","<<endl;
+			file_out<<"\"x\":"<<packedItems[i].pos.x<<","<<endl;
+			file_out<<"\"y\":"<<packedItems[i].pos.y<<","<<endl;
+			file_out<<"\"z\":"<<packedItems[i].pos.z<<","<<endl;
+			file_out<<"\"colour\":"<<"\""<<colour[i%9]<<"\""<<","<<endl;
+			file_out<<"\"wall\":"<<(i%4)+1<<","<<endl;
+			file_out<<"\"row\":"<<(i/8)+1<<","<<endl;
+			file_out<<"\"column\":"<<(i/4)+1<<","<<endl;
+			file_out<<"\"priority\":"<<"1"<<endl;
+			file_out<<"}";
+			if(i==packedItems.size()-1)
+			{
+				continue;
+			}
+			file_out<<","<<endl;
+		}
+		file_out<<"]"<<endl<<"}"<<endl;
 	}
 };
 
@@ -468,7 +499,7 @@ void optimalItemList(vector<Item>& Is, vector<int>& locBoundaries, int L, int B,
 
 double outputRep(Container& C, int i){
 	double volOpt = C.volOpt();
-	cout<<i<<": Volume Optimization : "<<volOpt<<' '<<C.checkValid()<<endl;
+	cout<<i<<": Volume Optimization : "<<volOpt<<' '<<endl;
 	return volOpt;
 }
 
@@ -484,6 +515,8 @@ double packer(string fileName, int i) {
 	optimalItemList(Is, locBoundaries, L, B, H);
 	//cout<<"Input read\n";
 	Container C = threedcpp(Is, L, B, H);
+
+	C.convert(i);
 
 	chrono::duration<double> diff = chrono::steady_clock::now() - start;
 	cout << "Time : " << diff.count() << "s\n";
