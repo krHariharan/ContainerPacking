@@ -21,6 +21,8 @@ const double TEMP_MAX = 1, TEMP_MIN = 0.1, COOLING_RATE = 0.90;
 
 bool DEBUG = false;
 
+ofstream fout;
+
 random_device rd;
 seed_seq sd{rd(), rd(), rd(), rd()};
 mt19937 rng(rd());
@@ -521,17 +523,21 @@ double packer(string fileName, int i) {
 
 	chrono::duration<double> diff = chrono::steady_clock::now() - start;
 	cout << "Time : " << diff.count() << "s\n";
-
+	fout << diff.count();
 	return outputRep(C, i);
 }
 
 int main(int argc, char ** argv){
+	fout.open("packer.txt");
 	double volOpt=0;
 	string baseFile(argv[1]);
 	baseFile += "_";
 	string fileType = ".csv";
 	for(int i=1; i<=100; i++){
-		volOpt += packer(baseFile+string(to_string(i))+fileType, i);
+		double currVO = packer(baseFile+string(to_string(i))+fileType, i);
+		fout<<" "<<currVO<<endl;
+		volOpt += currVO;
 		cout<<"Average volume optimization: "<<volOpt/i<<endl;
 	}
+	fout.close();
 }
